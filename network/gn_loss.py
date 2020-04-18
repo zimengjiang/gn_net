@@ -90,7 +90,7 @@ class GNLoss(nn.Module):
             loss = loss + (loss_pos + loss_neg)
         return loss
     
-
+    '''TODO: for each scale'''
     def compute_gn_loss(self, out_a, out_b, corres_pos):
         '''Todo: 
         1. check all dims
@@ -107,7 +107,7 @@ class GNLoss(nn.Module):
         '''please refer to the gn net paper: page4, Algorithm 1'''
         # extract the target feature
         # ua = corres_pos['a']//4
-        ua = ua = corres_pos['a']
+        ua = corres_pos['a']
         f_t = self.extract_features(out_a, ua)
         # compute start point and its feature
         # ub = corres_pos['b']//4
@@ -119,16 +119,20 @@ class GNLoss(nn.Module):
         # compute residual
         r = f_s - f_t
         # compute Jacobian
+        '''
+        TODO: np.gradient
+        '''
         f_s_gy, f_s_gx = np.gradient(out_b.detach().numpy(), axis=(2, 3)) # numerical derivative: J = d(out_b)/d(xs), feature gradients # to check if it is correct
         J_xs_x = self.extract_features(torch.from_numpy(f_s_gx), xs)
         J_xs_y = self.extract_features(torch.from_numpy(f_s_gy), xs)
         J = torch.stack([J_xs_x, J_xs_y], dim=-1) # todo: check dim
         # compute Heissian
-        eps = torch.rand(1) * 0.0001 # for invertibility
-        # create batched identity
+        eps = 1e-9 # for invertibility, need to be smaller
+        # TODO: create batched identity
         x = torch.eye(J.shape[2])
         x = x.reshape((1, J.shape[2], J.shape[2]))
         y = x.repeat(B*N, 1, 1)
+
         H = J.transpose(1,2) @ J + eps * y
         r = r.reshape((r.shape[0],r.shape[1],1))
         b = J.transpose(1,2) @ r
@@ -185,9 +189,9 @@ class GNLoss(nn.Module):
         B,N,_ = known_matches['a'].shape
         C = fa_4.shape[1]
         # slice features for positive matches
-        fa_4_extracted = self.extract_features(fa_4, known_matches['a']//4)
+        fa_4_extracted = self.extract_features(fa_4, known_matches['a'])
         fa_4_extracted = fa_4_extracted.reshape((B,N,C))
-        fb_4_extracted = self.extract_features(fb_4, known_matches['b']//4)
+        fb_4_extracted = self.extract_features(fb_4, known_matches['b'])
         fb_4_extracted = fb_4_extracted.reshape((B,N,C))
         # get hard negative samples
         negative_matches = self.pair_selector.get_pairs(fa_4_extracted, fb_4_extracted, known_matches['a'])
