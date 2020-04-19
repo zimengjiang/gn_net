@@ -29,6 +29,12 @@ class MyHardNegativePairSelector(PairSelector):
     def get_pairs(self, embedding1, embedding2, match_pos_in_1):
         # if self.cpu:
         #     embeddings = embeddings.cpu()
+
+        B,N,_ = match_pos_in_1.shape
+        C = embedding1.shape[1]
+        embedding1 = embedding1.reshape((B,N,C))
+        embedding2 = embedding2.reshape((B,N,C))
+
         distance_matrix = get_pdist(embedding1, embedding2)
         # add identity to set the diagnal a large value so that no positive matches are selected
         x = torch.eye(distance_matrix.shape[1])
@@ -37,7 +43,7 @@ class MyHardNegativePairSelector(PairSelector):
         eps = 10000
         distance_matrix = distance_matrix + y*eps
         match_neg_in_2 = torch.zeros(match_pos_in_1.shape)
-        min, neg_idx = torch.min(distance_matrix, dim = -1, keepdim=True)
+        min_, neg_idx = torch.min(distance_matrix, dim = -1, keepdim=True)
         for batch_i in range(match_pos_in_1.shape[0]):
             # m = match_pos[batch_i]
             # n = neg_idx[batch_i].view(-1)
