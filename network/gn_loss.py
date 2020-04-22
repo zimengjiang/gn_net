@@ -60,7 +60,25 @@ class GNLoss(nn.Module):
         # compute start point and its feature
         # ub = corres_pos['b']
         B,N,_ = ub.shape
-        xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
+        while(True):
+            xs = torch.round(torch.rand(ub.shape) + ub)
+            x = xs[:,:,0]
+            max_value_x, max_idx_x = torch.max(x, dim = 1)
+            y = xs[:,:,1]
+            max_value_y, max_idx_y = torch.max(y, dim = 1)
+            if (torch.max(max_value_x) <= self.max_size_x and torch.max(max_value_y) <= self.max_size_y):
+                break
+        # xs = torch.round(torch.rand(ub.shape) + ub)
+        # check if go beyound boundaries
+        # x = xs[:,:,0]
+        # max_value_x, max_idx_x = torch.max(x, dim = 1)            
+        # y = xs[:,:,1]
+        # max_value_y, max_idx_y = torch.max(y, dim = 1)
+
+            
+        # xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
+
+        # torch.clamp(min=0, max = self.max_size[1], xs[:]) # self.max_size: H x W
         f_s = self.extract_features(fb, xs)
         # compute residual
         r = f_s - f_t
@@ -101,7 +119,8 @@ class GNLoss(nn.Module):
 
         TODO: use for loop to check pair selector MyHardNegativePairSelector
         '''
-
+        self.max_size_x = F_a[-1].shape[3] # B x C x H x W 
+        self.max_size_y = F_a[-1].shape[2]
         '''get neg pairs, do it only for the finest feature'''
          # slice features for positive matches
         fa_4_sliced = self.extract_features(F_a[-1], known_matches['a']) # //4 if the input image is scaled
