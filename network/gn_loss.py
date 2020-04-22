@@ -51,7 +51,7 @@ class GNLoss(nn.Module):
         
         return torch.sum(torch.pow(mdist, 2) / N)
     
-    def compute_gn_loss(self, f_t, fb, ub):
+    def compute_gn_loss(self, f_t, fb, ub, level):
         '''
         f_t: target features F_a(ua)
         fb: feature map b, BxCxHxW
@@ -66,7 +66,7 @@ class GNLoss(nn.Module):
             max_value_x, max_idx_x = torch.max(x, dim = 1)
             y = xs[:,:,1]
             max_value_y, max_idx_y = torch.max(y, dim = 1)
-            if (torch.max(max_value_x) <= self.max_size_x and torch.max(max_value_y) <= self.max_size_y):
+            if (torch.max(max_value_x) < self.max_size_x // level and torch.max(max_value_y) < self.max_size_y //level):
                 break
         # xs = torch.round(torch.rand(ub.shape) + ub)
         # check if go beyound boundaries
@@ -151,7 +151,7 @@ class GNLoss(nn.Module):
             loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, N, pos = False)
 
             '''compute gn loss'''
-            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], known_matches['b'] // level) #//4
+            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], known_matches['b'] // level, level) #//4
             loss = (loss_pos + loss_neg) + self.lamda * loss_gn + loss
 
         return loss
