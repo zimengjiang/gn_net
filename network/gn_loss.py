@@ -66,7 +66,7 @@ class GNLoss(nn.Module):
             max_value_x, max_idx_x = torch.max(x, dim = 1)
             y = xs[:,:,1]
             max_value_y, max_idx_y = torch.max(y, dim = 1)
-            if (torch.max(max_value_x) < self.max_size_x // level and torch.max(max_value_y) < self.max_size_y //level):
+            if (torch.max(max_value_x) < self.max_size_x // level and torch.max(max_value_y) < self.max_size_y //level and torch.min(xs) >= 0):
                 break
         # xs = torch.round(torch.rand(ub.shape) + ub)
         # check if go beyound boundaries
