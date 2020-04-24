@@ -10,11 +10,11 @@ import torch.optim as optim
 '''set up data loaders'''
 
 # todo: make it configurable 
-trainset = CMUDataset(root = '/Users/zimengjiang/code/3dv/public_data',
+trainset = CMUDataset(root = '/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data',
                       name = 'cmu',
-                      image_folder = 'images',
-                      pair_info_folder = 'correspondence',
-                      cmu_slice_all = False,
+                      image_folder = 'cmu_extended',
+                      pair_info_folder = 'correspondence_data',
+                      cmu_slice_all = True,
                       cmu_slice = 6,
                       queries_folder = 'query',
                       transform = True
