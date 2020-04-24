@@ -60,21 +60,14 @@ class GNLoss(nn.Module):
         # compute start point and its feature
         # ub = corres_pos['b']
         B,N,_ = ub.shape
-        while(True):
-            xs = torch.round(torch.rand(ub.shape) + ub)
-            x = xs[:,:,0]
-            max_value_x, max_idx_x = torch.max(x, dim = 1)
-            y = xs[:,:,1]
-            max_value_y, max_idx_y = torch.max(y, dim = 1)
-            if (torch.max(max_value_x) < self.max_size_x // level and torch.max(max_value_y) < self.max_size_y //level and torch.min(xs) >= 0):
-                break
+        xs = torch.round(torch.rand(ub.shape) + ub)
+        p_x = torch.clamp(xs[:,:,0], max = (self.max_size_x-1) // level, min = 0)
+        p_y = torch.clamp(xs[:,:,1], max = (self.max_size_y-1) // level, min = 0)
+        xs = torch.stack((p_x, p_y), dim = -1)
+        # tmp,_ = torch.max(xs[:,:,0],dim=-1)
+        # tmp,_ = torch.max(xs[:,:,1], dim = -1)
         # xs = torch.round(torch.rand(ub.shape) + ub)
         # check if go beyound boundaries
-        # x = xs[:,:,0]
-        # max_value_x, max_idx_x = torch.max(x, dim = 1)            
-        # y = xs[:,:,1]
-        # max_value_y, max_idx_y = torch.max(y, dim = 1)
-
             
         # xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
 
@@ -128,7 +121,7 @@ class GNLoss(nn.Module):
         fb_4_sliced = self.extract_features(F_b[-1], known_matches['b']) # //4
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
         # get hard negative samples
-        negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches['a']) #//4
+        negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches) #//4 inside pair selector
 
         '''compute loss for each scale'''
         loss= 0
@@ -139,8 +132,8 @@ class GNLoss(nn.Module):
                 fa_sliced_pos = fa_4_sliced
                 fb_sliced_pos = fb_4_sliced
             else:
-                fa_sliced_pos = self.extract_features(F_a[i], known_matches['a'] // level) #(level*4)) #TODO: use bilinear interpolation in extract_features
-                fb_sliced_pos = self.extract_features(F_b[i], known_matches['b'] // level) #(level*4))
+                fa_sliced_pos = self.extract_features(F_a[i], known_matches['a'] // (level)) #(level*4)) #TODO: use bilinear interpolation in extract_features
+                fb_sliced_pos = self.extract_features(F_b[i], known_matches['b'] // (level)) #(level*4))
             fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] // level) # don't //4 here. negative_matches are in the same scale as known_matches//4
             fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] // level)
 
@@ -151,7 +144,7 @@ class GNLoss(nn.Module):
             loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, N, pos = False)
 
             '''compute gn loss'''
-            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], known_matches['b'] // level, level) #//4
+            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], known_matches['b'] // (level), (level)) #//4, //no 4 for the second level
             loss = (loss_pos + loss_neg) + self.lamda * loss_gn + loss
 
         return loss

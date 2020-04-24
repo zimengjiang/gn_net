@@ -35,7 +35,7 @@ class CMUDataset(Dataset):
                         pair_info_folder: str,
                         name: str = None,
                         queries_folder: str = None,
-                        cmu_slice_all: bool = False,
+                        cmu_slice_all: bool = True,
                         cmu_slice: int =  None,
                         transform = None
                         ):
@@ -71,7 +71,10 @@ class CMUDataset(Dataset):
         pair_files = glob(str(Path(pair_file_roots, suffix)))
         if not len(pair_files):
             raise Exception('No correspondence file found at {}'.format(pair_file_roots))
-        print (('>> Found {} image pairs for slice {}').format(len(pair_files), cmu_slice))
+        if not cmu_slice_all:
+            print (('>> Found {} image pairs for slice {}').format(len(pair_files), cmu_slice))
+        else:
+            print (('>> Found {} image pairs for all slice').format(len(pair_files)))
         self._data['pair_file_names'] = pair_files
     
     def load_image_pairs(self, cmu_slice, cmu_slice_all):
@@ -112,9 +115,9 @@ class CMUDataset(Dataset):
         a = self._data['corres_pos_all']['a'][idx].squeeze()
         b = self._data['corres_pos_all']['b'][idx].squeeze()
         pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=1024)
-        neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=1024)
+        # neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=1024)
         corres_ab_pos = {'a':pos_a, 'b':pos_b}
-        corres_ab_neg = {'a':neg_a, 'b':neg_b}
+        # corres_ab_neg = {'a':neg_a, 'b':neg_b}
         if self.transform:
             img_a = self.default_transform(Image.open(img_a))
             img_b = self.default_transform(Image.open(img_b))

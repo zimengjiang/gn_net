@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import torch.nn as nn
 
 '''Todo: 
     1. find out how to compute loss: 
@@ -8,7 +9,7 @@ import numpy as np
 '''
 
 def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval,
-        start_epoch=0):
+        start_epoch=0, init = False):
     """
     Loaders, model, loss function and metrics should work together for a given task,
     i.e. The model should be able to process data output of loaders,
@@ -30,7 +31,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         '''
 
         # Train stage
-        train_loss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval)
+        train_loss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, init = False)
 
         message = 'Epoch: {}/{}. Train set: Average loss: {:.4f}'.format(epoch + 1, n_epochs, train_loss)
 
@@ -42,7 +43,14 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         print(message)
 
 
-def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval):
+def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, init = False):
+
+    # initialize network parameters, oscillates a lot here. not good 
+    if init:
+        for m in model.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight.data)
+                m.bias.data.fill_(0)
 
     model.train()
     losses = []

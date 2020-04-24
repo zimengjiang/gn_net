@@ -39,12 +39,12 @@ model = GNNet(embedding_net)
 model = model.to(device)
 # set up loss 
 margin = 1.
-loss_fn = GNLoss(margin = 1, lamda = 0.05)
+loss_fn = GNLoss(margin = 1, lamda = 0.005)
 lr = 1e-6
 optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = 1e-3)
 scheduler = optim.lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1) # optional
 
-n_epochs = 40
+n_epochs = 20
 log_interval = 100
 # fit the model
-fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
+fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, init=False)
