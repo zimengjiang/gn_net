@@ -55,7 +55,9 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval):
         if cuda:
             img_ab = tuple(d.cuda() for d in img_ab)
             if corres_ab is not None:
-                corres_ab = corres_ab.cuda()
+                # corres_ab = corres_ab.cuda()
+                # modified
+                corres_ab={key:corres_ab[key].cuda() for key in corres_ab}
 
 
         optimizer.zero_grad()

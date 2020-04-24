@@ -40,6 +40,8 @@ class MyHardNegativePairSelector(PairSelector):
         x = torch.eye(distance_matrix.shape[1])
         x = x.reshape((1, distance_matrix.shape[1], distance_matrix.shape[1]))
         y = x.repeat(distance_matrix.shape[0], 1, 1)
+        # modified
+        y = y.cuda()
         eps = 10000
         distance_matrix = distance_matrix + y*eps
         match_neg_in_2 = torch.zeros(match_pos_in_1.shape)

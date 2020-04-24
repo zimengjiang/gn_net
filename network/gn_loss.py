@@ -34,10 +34,16 @@ class GNLoss(nn.Module):
         f_permuted = f.permute(1,0,2,3)
         f_2d = f_permuted.reshape((c, b*h*w))
         f_idx_2d = np.zeros((b*N))
+        # modified
+        f_idx_2d_cuda_tensor = torch.zeros((b*N)).cuda()
         for b_th in range(b):
             m = indices[b_th]
-            f_idx_2d[b_th*(N):(b_th+1)*N] = b_th*w*h + m[:,1]*w + m[:,0]
+            # f_idx_2d[b_th*(N):(b_th+1)*N] = b_th*w*h + m[:,1]*w + m[:,0]
+            # modified
+            f_idx_2d_cuda_tensor[b_th*(N):(b_th+1)*N] = b_th*w*h + m[:,1]*w + m[:,0]
+            f_idx_2d = f_idx_2d_cuda_tensor.cpu().numpy()
         f_idx_2d = torch.floor(torch.from_numpy(f_idx_2d)).type(torch.LongTensor).to(f_2d.device)
+
         return torch.index_select(f_2d, -1, f_idx_2d).transpose(0,1)
         # return torch.index_select(f_2d, -1, f_idx_2d)
 
@@ -61,7 +67,7 @@ class GNLoss(nn.Module):
         # ub = corres_pos['b']
         B,N,_ = ub.shape
         while(True):
-            xs = torch.round(torch.rand(ub.shape) + ub)
+            xs = torch.round(torch.rand(ub.shape).cuda() + ub.cuda())
             x = xs[:,:,0]
             max_value_x, max_idx_x = torch.max(x, dim = 1)
             y = xs[:,:,1]
@@ -86,9 +92,10 @@ class GNLoss(nn.Module):
         '''
         TODO: np.gradient
         '''
-        f_s_gy, f_s_gx = np.gradient(fb.detach().numpy(), axis=(2, 3)) # numerical derivative: J = d(fb)/d(xs), feature gradients # to check if it is correct
-        J_xs_x = self.extract_features(torch.from_numpy(f_s_gx), xs)
-        J_xs_y = self.extract_features(torch.from_numpy(f_s_gy), xs)
+        f_s_gy, f_s_gx = np.gradient(fb.cpu().detach().numpy(), axis=(2, 3)) # numerical derivative: J = d(fb)/d(xs), feature gradients # to check if it is correct
+        # modified
+        J_xs_x = self.extract_features(torch.from_numpy(f_s_gx), xs).cuda()
+        J_xs_y = self.extract_features(torch.from_numpy(f_s_gy), xs).cuda()
         J = torch.stack([J_xs_x, J_xs_y], dim=-1) # todo: check dim
         # compute Heissian
         eps = 1e-9 # for invertibility, need to be smaller
@@ -128,7 +135,8 @@ class GNLoss(nn.Module):
         fb_4_sliced = self.extract_features(F_b[-1], known_matches['b']) # //4
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
         # get hard negative samples
-        negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches['a']) #//4
+        # modified
+        negative_matches = self.pair_selector.get_pairs(fa_4_sliced.cuda(), fb_4_sliced.cuda(), known_matches['a'].cuda()) #//4
 
         '''compute loss for each scale'''
         loss= 0
