@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
+import os
 
 '''Todo: 
     1. find out how to compute loss: 
@@ -19,6 +20,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     Online triplet learning: batch loader, embedding model, online triplet loss
     """
     # for epoch in range(0, start_epoch):
+    # for epoch in range(1, start_epoch):
     #     scheduler.step()
 
     for epoch in range(start_epoch, n_epochs):
@@ -98,6 +100,8 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, ini
             losses = []
 
     total_loss /= (batch_idx + 1)
+    # if not os.path.exists(args.save_root):
+    #         os.makedirs(args.save_root)
     return total_loss
 
 
