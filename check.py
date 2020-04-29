@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import numpy as np  
 
 def check_batch_slice():
@@ -23,8 +24,17 @@ def check_batch_slice():
     f_idx_2d = torch.from_numpy(f_idx_2d).type(torch.LongTensor)
     f_ext = torch.index_select(f_2d, -1, f_idx_2d).transpose(0,1)
     tmp
-    
+
+def check_sobel():
+    batch_size = 10
+    channels = 3
+    h, w = 24, 24
+    x = torch.randn(batch_size, channels, h, w)
+    conv = nn.Conv2d(1, 1, 4, 2, 1)
+    output = conv(x.view(-1, 1, h, w)).view(batch_size, channels, h//2, w//2)
+    print(output.shape)
 
 
 if __name__ == "__main__":
-    check_batch_slice()
+    # check_batch_slice()
+    check_sobel()

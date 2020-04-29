@@ -2,6 +2,7 @@ from itertools import combinations
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 class PairSelector:
     """
@@ -33,8 +34,8 @@ class MyHardNegativePairSelector(PairSelector):
 # TODO: adjust the weight
         scale_position = 1e-2
         weight = 10 
-        match_pos_in_1 = match_pos['a'] #//4
-        match_pos_in_2 = match_pos['b'] #//4
+        match_pos_in_1 = match_pos['a'] /4 #//4
+        match_pos_in_2 = match_pos['b'] /4 #//4
         B,N,_ = match_pos_in_1.shape
         C = embedding1.shape[1]        
 
@@ -102,5 +103,52 @@ def batched_eye_like (x, n):
         A torch.Tensor of size (B, n, n), with same dtype and device as x.
     """
     return torch.eye(n).to(x)[None].repeat(len(x), 1, 1)
-    
+
+
+def bilinear_interpolation(grid, idx):
+    # grid: C x H x W
+    # idx: N x 2
+    _, H, W = grid.shape
+    x = idx[..., 0]
+    y = idx[..., 1]
+    x0 = torch.clamp(torch.floor(x), 0, W-1)
+    y0 = torch.clamp(torch.floor(y), 0, H-1)
+    x1 = torch.clamp(torch.ceil(x), 0, W-1)
+    y1 = torch.clamp(torch.ceil(y), 0, H-1)
+    weight00 = (x1 - x) * (y1 - y)
+    weight01 = (x1 - x) * (y - y0)
+    weight10 = (x - x0) * (y1 - y)
+    weight11 = (x - x0) * (y - y0)
+    x0 = x0.type(torch.LongTensor)
+    y0 = y0.type(torch.LongTensor)
+    x1 = x1.type(torch.LongTensor)
+    y1 = y1.type(torch.LongTensor)
+    grid00 = grid[..., y0, x0]
+    grid01 = grid[..., y0, x1]
+    grid10 = grid[..., y1, x0]
+    grid11 = grid[..., y1, x1]
+    # print(weight00)
+    # print(weight01)
+    # print(weight10)
+    # print(weight11)
+
+    return weight00*grid00 + weight01*grid01 + weight10*grid10 + weight11*grid11
+
+def torch_gradient(f):
+    # f: BxCxHxW
+    # sobel_y = torch.FloatTensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]).view(1,1,3,3).expand(1,f.shape[1],3,3) # .cuda()
+    # sobel_x = torch.FloatTensor([[-1., 0., 1.],[-2., 0., 2.],[-1., 0., 1.]]).view(1,1,3,3).expand(1,f.shape[1],3,3) # .cuda()
+    # f_gradx = F.conv2d(f, sobel_x, stride=1, padding=1)
+    # f_grady = F.conv2d(f, sobel_y, stride=1, padding=1)
+
+    b,c,h,w = f.shape
+    # x = torch.randn(batch_size, channels, h, w)
+    # conv = nn.Conv2d(1, 1, 4, 2, 1)
+    # output = conv(x.view(-1, 1, h, w)).view(batch_size, channels, h//2, w//2)
+    # sobel operator torch.grad = False checked.
+    sobel_y = torch.FloatTensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]).view(1,1,3,3) # .cuda()
+    sobel_x = torch.FloatTensor([[-1., 0., 1.],[-2., 0., 2.],[-1., 0., 1.]]).view(1,1,3,3) # pytorch performs cross-correlation instead of convolution in information theory
+    f_gradx = F.conv2d(f.view(-1,1,h,w), sobel_x, stride=1, padding=1).view(b,c,h,w)
+    f_grady = F.conv2d(f.view(-1,1,h,w), sobel_y, stride=1, padding=1).view(b,c,h,w)
+    return f_gradx, f_grady
 

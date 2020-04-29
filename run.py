@@ -10,9 +10,9 @@ import torch.optim as optim
 '''set up data loaders'''
 
 # todo: make it configurable 
-trainset = CMUDataset(root = '/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data',
+trainset = CMUDataset(root = '/Users/zimengjiang/code/3dv/public_data',
                       name = 'cmu',
-                      image_folder = 'cmu_extended',
+                      image_folder = 'images',
                       pair_info_folder = 'correspondence_data',
                       cmu_slice_all = True,
                       cmu_slice = 6,
@@ -39,7 +39,7 @@ model = GNNet(embedding_net)
 model = model.to(device)
 # set up loss 
 margin = 1.
-loss_fn = GNLoss(margin = 1, lamda = 0.005)
+loss_fn = GNLoss(margin = 1, lamda = 0.003)
 lr = 1e-6
 optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = 1e-3)
 scheduler = optim.lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1) # optional

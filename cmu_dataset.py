@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 from glob import glob 
-from corres_sampler import random_select_positive_matches, random_select_negative_matches
+from corres_sampler import random_select_positive_matches
 import scipy.io
 import h5py # for loading v7.3 .mat 
 
@@ -102,7 +102,7 @@ class CMUDataset(Dataset):
     '''
     def default_transform(self):
         return transforms.Compose([
-            # transforms.Resize((192, 256)), # check image dim, resize (H, W)?  just for fast debugging 
+            transforms.Resize((192, 256)), # check image dim, resize (H, W)?  just for fast debugging 
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
