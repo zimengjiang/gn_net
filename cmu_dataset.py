@@ -37,7 +37,8 @@ class CMUDataset(Dataset):
                         queries_folder: str = None,
                         cmu_slice_all: bool = True,
                         cmu_slice: int =  None,
-                        transform = None
+                        transform = None,
+                        img_scale: int = None
                         ):
         self._data = {
             'name': 'cmu',
@@ -48,7 +49,8 @@ class CMUDataset(Dataset):
             'pair_file_names': None,
             'queries_folder': queries_folder,
             'image_pairs_name': None, 
-            'corres_pos_all': None
+            'corres_pos_all': None,
+            'scale': img_scale
         }
         if not cmu_slice_all:
             self._data['slice_folder'] = 'slice{}'.format(cmu_slice)
@@ -102,7 +104,7 @@ class CMUDataset(Dataset):
     '''
     def default_transform(self):
         return transforms.Compose([
-            transforms.Resize((192, 256)), # check image dim, resize (H, W)?  just for fast debugging 
+            transforms.Resize((768//self._data['scale'], 1024//self._data['scale'])), # check image dim, resize (H, W)?  just for fast debugging 
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),

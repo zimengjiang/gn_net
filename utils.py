@@ -27,15 +27,15 @@ class MyHardNegativePairSelector(PairSelector):
         super(MyHardNegativePairSelector, self).__init__()
         self.cpu = cpu
 
-    def get_pairs(self, embedding1, embedding2, match_pos):
+    def get_pairs(self, embedding1, embedding2, match_pos, img_scale):
         # if self.cpu:
         #     embeddings = embeddings.cpu()
        
 # TODO: adjust the weight
         scale_position = 1e-2
         weight = 10 
-        match_pos_in_1 = match_pos['a'] /4 #//4
-        match_pos_in_2 = match_pos['b'] /4 #//4
+        match_pos_in_1 = match_pos['a'] /img_scale #//4
+        match_pos_in_2 = match_pos['b'] /img_scale #//4
         B,N,_ = match_pos_in_1.shape
         C = embedding1.shape[1]        
 

@@ -22,7 +22,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     #     scheduler.step()
 
     for epoch in range(start_epoch, n_epochs):
-        scheduler.step()
+        # scheduler.step()
         '''
         UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. 
         In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  
@@ -32,7 +32,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
 
         # Train stage
         train_loss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, init = False)
-
+        scheduler.step()
         message = 'Epoch: {}/{}. Train set: Average loss: {:.4f}'.format(epoch + 1, n_epochs, train_loss)
 
         if val_loader is not None:

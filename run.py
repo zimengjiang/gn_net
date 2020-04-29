@@ -5,7 +5,8 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 
 
-
+# scale the original image by the factor of img_scale
+img_scale = 2
 
 '''set up data loaders'''
 
@@ -17,7 +18,8 @@ trainset = CMUDataset(root = '/Users/zimengjiang/code/3dv/public_data',
                       cmu_slice_all = True,
                       cmu_slice = 6,
                       queries_folder = 'query',
-                      transform = True
+                      transform = True,
+                      img_scale = img_scale
 )
 
 batch_size = 2
@@ -39,7 +41,7 @@ model = GNNet(embedding_net)
 model = model.to(device)
 # set up loss 
 margin = 1.
-loss_fn = GNLoss(margin = 1, lamda = 0.003)
+loss_fn = GNLoss(margin = 1, lamda = 0.003, img_scale = img_scale)
 lr = 1e-6
 optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = 1e-3)
 scheduler = optim.lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1) # optional
