@@ -1,8 +1,11 @@
 import torch
+import torchsnooper
 import numpy as np
 import torch.nn as nn
 import os
-
+cuda = torch.cuda.is_available()
+cuda = False
+device = torch.device("cuda:0" if cuda else "cpu")
 '''Todo: 
     1. find out how to compute loss: 
     output of enumerate(train_loader), 

@@ -1,4 +1,5 @@
 import torch
+import torchsnooper
 from cmu_dataset import CMUDataset
 from trainer import fit
 from torch.utils.data import DataLoader
@@ -53,6 +54,7 @@ from network.gnnet_model import EmbeddingNet, GNNet
 from network.gn_loss import GNLoss
 
 cuda = torch.cuda.is_available()
+cuda = False
 device = torch.device("cuda:0" if cuda else "cpu")
 print(device)
 

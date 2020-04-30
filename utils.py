@@ -1,8 +1,11 @@
 from itertools import combinations
-
+import torchsnooper
 import numpy as np
 import torch
 import torch.nn.functional as F
+cuda = torch.cuda.is_available()
+cuda = False
+device = torch.device("cuda:0" if cuda else "cpu")
 
 class PairSelector:
     """
@@ -146,9 +149,9 @@ def torch_gradient(f):
     # conv = nn.Conv2d(1, 1, 4, 2, 1)
     # output = conv(x.view(-1, 1, h, w)).view(batch_size, channels, h//2, w//2)
     # sobel operator torch.grad = False checked.
-    sobel_y = torch.FloatTensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]).view(1,1,3,3) # .cuda()
-    sobel_x = torch.FloatTensor([[-1., 0., 1.],[-2., 0., 2.],[-1., 0., 1.]]).view(1,1,3,3) # pytorch performs cross-correlation instead of convolution in information theory
-    f_gradx = F.conv2d(f.view(-1,1,h,w), sobel_x, stride=1, padding=1).view(b,c,h,w)
-    f_grady = F.conv2d(f.view(-1,1,h,w), sobel_y, stride=1, padding=1).view(b,c,h,w)
+    sobel_y = torch.FloatTensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]).view(1,1,3,3).to(device) # .cuda()
+    sobel_x = torch.FloatTensor([[-1., 0., 1.],[-2., 0., 2.],[-1., 0., 1.]]).view(1,1,3,3).to(device) # pytorch performs cross-correlation instead of convolution in information theory
+    f_gradx = F.conv2d(f.view(-1,1,h,w), sobel_x, stride=1, padding=1).view(b,c,h,w).to(device)
+    f_grady = F.conv2d(f.view(-1,1,h,w), sobel_y, stride=1, padding=1).view(b,c,h,w).to(device)
     return f_gradx, f_grady
 
