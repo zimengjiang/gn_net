@@ -1,5 +1,5 @@
 from itertools import combinations
-import torchsnooper
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -111,16 +111,16 @@ def bilinear_interpolation(grid, idx):
     # grid: C x H x W
     # idx: N x 2
     _, H, W = grid.shape
-    x = idx[..., 0]
-    y = idx[..., 1]
-    x0 = torch.clamp(torch.floor(x), 0, W-1)
-    y0 = torch.clamp(torch.floor(y), 0, H-1)
-    x1 = torch.clamp(torch.ceil(x), 0, W-1)
-    y1 = torch.clamp(torch.ceil(y), 0, H-1)
-    weight00 = (x1 - x) * (y1 - y)
-    weight01 = (x1 - x) * (y - y0)
-    weight10 = (x - x0) * (y1 - y)
-    weight11 = (x - x0) * (y - y0)
+    x = idx[..., 0].to(device)
+    y = idx[..., 1].to(device)
+    x0 = torch.clamp(torch.floor(x), 0, W-1).to(device)
+    y0 = torch.clamp(torch.floor(y), 0, H-1).to(device)
+    x1 = torch.clamp(torch.ceil(x), 0, W-1).to(device)
+    y1 = torch.clamp(torch.ceil(y), 0, H-1).to(device)
+    weight00 = ((x1 - x) * (y1 - y)).to(device)
+    weight01 = ((x1 - x) * (y - y0)).to(device)
+    weight10 = ((x - x0) * (y1 - y)).to(device)
+    weight11 = ((x - x0) * (y - y0)).to(device)
     x0 = x0.type(torch.LongTensor)
     y0 = y0.type(torch.LongTensor)
     x1 = x1.type(torch.LongTensor)
@@ -150,7 +150,7 @@ def torch_gradient(f):
     # sobel operator torch.grad = False checked.
     sobel_y = torch.FloatTensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]).view(1,1,3,3).to(device) # .cuda()
     sobel_x = torch.FloatTensor([[-1., 0., 1.],[-2., 0., 2.],[-1., 0., 1.]]).view(1,1,3,3).to(device) # pytorch performs cross-correlation instead of convolution in information theory
-    f_gradx = F.conv2d(f.view(-1,1,h,w), sobel_x, stride=1, padding=1).view(b,c,h,w).to(device)
-    f_grady = F.conv2d(f.view(-1,1,h,w), sobel_y, stride=1, padding=1).view(b,c,h,w).to(device)
+    f_gradx = F.conv2d(f.view(-1,1,h,w), sobel_x, stride=1, padding=1).view(b,c,h,w)
+    f_grady = F.conv2d(f.view(-1,1,h,w), sobel_y, stride=1, padding=1).view(b,c,h,w)
     return f_gradx, f_grady
 

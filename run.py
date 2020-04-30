@@ -1,5 +1,4 @@
 import torch
-import torchsnooper
 from cmu_dataset import CMUDataset
 from trainer import fit
 from torch.utils.data import DataLoader
@@ -8,7 +7,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--dataset_root', type=str, default='/Users/zimengjiang/code/3dv/public_data')
+parser.add_argument('--dataset_root', type=str, default='/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data')
 parser.add_argument('--dataset_name', type=str, default='cmu')
 parser.add_argument('--dataset_image_folder', type=str, default='images')
 parser.add_argument('--pair_info_folder', type=str, default='correspondence_data')
@@ -17,7 +16,7 @@ parser.add_argument('--all_slice', type=bool, default=True)
 parser.add_argument('--slice', type=int, default=6)
 parser.add_argument('--transform', type=bool, default=True)
 parser.add_argument('--start_epoch', type=int, default=0)
-parser.add_argument('--total_epochs', type=int, default=1000)
+parser.add_argument('--total_epochs', type=int, default=500)
 parser.add_argument('--log_interval', type=int, default=100)
 parser.add_argument('--batch_size', '-b', type=int, default=8, help="Batch size")
 parser.add_argument('--num_workers', '-n', type=int, default=1, help="Number of workers")
@@ -25,7 +24,7 @@ parser.add_argument('--lr', type = float, default=1e-6, help="Number of workers"
 parser.add_argument('--schedule_lr_frequency', type=int, default=8, help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale', type=int, default = 4, help="Scaling factor for input image")
-parser.add_argument('--save_check_point_root', type=str, default = '/Users/zimengjiang/code/3dv/public_data')
+parser.add_argument('--save_check_point_root', type=str, default = '/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data')
 
 args = parser.parse_args()
 

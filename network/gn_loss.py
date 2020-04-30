@@ -1,8 +1,9 @@
 import torch
-import torchsnooper
 import torch.nn as nn 
 import numpy as np
+import torchsnooper
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
+
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 
@@ -84,18 +85,18 @@ class GNLoss(nn.Module):
         # check if go beyound boundaries
             
         # xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
-        fb = fb.to(device)
+
         xs = torch.rand(ub.shape).to(device) + ub.to(device)
         # torch.clamp(min=0, max = self.max_size[1], xs[:]) # self.max_size: H x W
-        f_s = self.extract_features(fb, xs).to(device)
+        f_s = self.extract_features(fb, xs)
         # compute residual
         r = f_s - f_t
         # compute Jacobian
 
         # modified
         f_s_gx, f_s_gy = torch_gradient(fb) # problematic 
-        J_xs_x = self.extract_features(f_s_gx, xs).to(device)
-        J_xs_y = self.extract_features(f_s_gy, xs).to(device)
+        J_xs_x = self.extract_features(f_s_gx, xs)
+        J_xs_y = self.extract_features(f_s_gy, xs)
 
         # f_s_gy, f_s_gx = np.gradient(fb.cpu().detach().numpy(), axis=(2, 3)) # numerical derivative: J = d(fb)/d(xs), feature gradients # to check if it is correct
         # J_xs_x = self.extract_features(torch.from_numpy(f_s_gx), xs)#.cuda()
@@ -113,13 +114,11 @@ class GNLoss(nn.Module):
         e1 = 0.5 * ((ub.reshape(B*N,2,1) - miu).transpose(1,2)).type(torch.float32) @ H @ (ub.reshape(B*N,2,1) - miu).type(torch.float32) # check dim, very unsure
         e1 = torch.sum(e1)
         # second error term
-        log_det = torch.log(torch.det(H))
-        e2 = (B*N * torch.log(torch.tensor(2 * np.pi)) - 0.5 * log_det.sum(-1)).to(device)
+        log_det = torch.log(torch.det(H)).to(device)
+        e2 = B*N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device) 
         e = e1 + e2
         return e
-
-
-    @torchsnooper.snoop()
+    
     def forward(self, F_a, F_b, known_matches):
         '''
         F_a is a list containing 4 feature maps of different shapes
@@ -133,7 +132,6 @@ class GNLoss(nn.Module):
 
         TODO: use for loop to check pair selector MyHardNegativePairSelector
         '''
-
         self.max_size_x = F_a[-1].shape[3] # B x C x H x W 
         self.max_size_y = F_a[-1].shape[2]
         '''get neg pairs, do it only for the finest feature'''
@@ -144,8 +142,6 @@ class GNLoss(nn.Module):
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
         # get hard negative samples
         negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches, self.img_scale) #//.cuda 4 inside pair selector
-        # put dict into cuda
-        negative_matches={key:negative_matches[key].to(device) for key in negative_matches}
 
         '''compute loss for each scale'''
         loss= 0

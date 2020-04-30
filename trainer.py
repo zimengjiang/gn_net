@@ -1,10 +1,11 @@
 import torch
-import torchsnooper
 import numpy as np
 import torch.nn as nn
 import os
+
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
+
 '''Todo: 
     1. find out how to compute loss: 
     output of enumerate(train_loader), 
@@ -65,11 +66,11 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, ini
         if not type(img_ab) in (tuple, list):
             img_ab = (img_ab,)
         if cuda:
-            img_ab = tuple(d.cuda() for d in img_ab)
+            img_ab = tuple(d.to(device) for d in img_ab)
             if corres_ab is not None:
                 # corres_ab = corres_ab.cuda()
                 # modified
-                corres_ab={key:corres_ab[key].cuda() for key in corres_ab}
+                corres_ab={key:corres_ab[key].to(device) for key in corres_ab}
 
 
         optimizer.zero_grad()
@@ -116,9 +117,9 @@ def test_epoch(val_loader, model, loss_fn, cuda):
             if not type(data) in (tuple, list):
                 data = (data,)
             if cuda:
-                data = tuple(d.cuda() for d in data)
+                data = tuple(d.to(device) for d in data)
                 if target is not None:
-                    target = target.cuda()
+                    target = target.to(device)
 
             outputs = model(*data)
 

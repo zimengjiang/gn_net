@@ -93,8 +93,8 @@ class CMUDataset(Dataset):
             query_root = Path(self._data['root'], self._data['name'], self._data['image_folder'], (f.split('/')[-1]).split('_')[1], self._data['queries_folder'])
             image_pairs['a'].append(Path(query_root, org_name_a.split('/')[-1]))
             image_pairs['b'].append(Path(query_root, org_name_b.split('/')[-1]))
-            corres_all_pos['a'].append(pair_info['pt_i'].value)
-            corres_all_pos['b'].append(pair_info['pt_j'].value)  # N x 2
+            corres_all_pos['a'].append(pair_info['pt_i'][()])
+            corres_all_pos['b'].append(pair_info['pt_j'][()])  # N x 2
         self._data['image_pairs_name'] = image_pairs
         self._data['corres_pos_all'] = corres_all_pos
 
@@ -116,7 +116,7 @@ class CMUDataset(Dataset):
         img_b = self._data['image_pairs_name']['b'][idx]
         a = self._data['corres_pos_all']['a'][idx].squeeze()
         b = self._data['corres_pos_all']['b'][idx].squeeze()
-        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=1024)
+        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=500)
         # neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=1024)
         corres_ab_pos = {'a':pos_a, 'b':pos_b}
         # corres_ab_neg = {'a':neg_a, 'b':neg_b}

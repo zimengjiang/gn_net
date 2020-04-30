@@ -24,7 +24,7 @@ def getitem(data, idx):
 def count():
     data = {
             'name': 'cmu',
-            'root': '/local/home/lixxue/gnnet/gn_net_data',
+            'root': '/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data',
             'slice_folder': None,
             'image_folder': 'images',
             'pair_info_folder': 'correspondence',
@@ -58,7 +58,11 @@ def count():
         print (('>> Found {} image pairs for all slice').format(len(pair_files)))
     data['pair_file_names'] = pair_files
     # print(pair_files)
-    
+
+    filename ='count.txt'
+    with open(filename,'a') as file_object:
+        file_object.write('total:'+' '+str(len(pair_files))+'\n\n')
+
     N = len(data['pair_file_names']) # number of image pairs
     image_pairs = {'a':[], 'b':[]}
     corres_all_pos = {'a':[], 'b':[]}
@@ -67,6 +71,7 @@ def count():
 
     # /public_data/cmu/images
     # query_root = Path(self._data['root'], self._data['name'], self._data['image_folder'], self._data['slice_folder'], self._data['queries_folder'])
+    
     for f in data['pair_file_names']:
         # pair_info = scipy.io.loadmat(f)
         pair_info = h5py.File(f)
@@ -82,9 +87,9 @@ def count():
         a = corres_all_pos['a'].squeeze()
         b = corres_all_pos['b'].squeeze()
 
-        print(len(a))
-        print(len(b))
-        if len(a)<1024:
+        # print(len(a))
+        # print(len(b))
+        if len(a)<500:
             num = num+1
             filename ='count.txt'
             with open(filename,'a') as file_object:
@@ -92,7 +97,7 @@ def count():
     print(num)
     filename ='count.txt'
     with open(filename,'a') as file_object:
-        file_object.write('total:'+' '+str(num)+'\n\n')
+        file_object.write('count:'+' '+str(num)+'\n\n')
 
     # data['image_pairs_name'] = image_pairs
     # data['corres_pos_all'] = corres_all_pos
