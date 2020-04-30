@@ -54,7 +54,6 @@ from network.gnnet_model import EmbeddingNet, GNNet
 from network.gn_loss import GNLoss
 
 cuda = torch.cuda.is_available()
-cuda = False
 device = torch.device("cuda:0" if cuda else "cpu")
 print(device)
 

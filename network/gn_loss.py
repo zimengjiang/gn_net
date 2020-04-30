@@ -4,7 +4,6 @@ import torch.nn as nn
 import numpy as np
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
 cuda = torch.cuda.is_available()
-cuda = False
 device = torch.device("cuda:0" if cuda else "cpu")
 
 # TODO: resize the image and corresponding matches

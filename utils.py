@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 cuda = torch.cuda.is_available()
-cuda = False
 device = torch.device("cuda:0" if cuda else "cpu")
 
 class PairSelector:
