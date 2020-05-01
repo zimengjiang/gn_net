@@ -47,11 +47,12 @@ dataset = CMUDataset(root = args.dataset_root,
                       transform = args.transform,
                       img_scale = args.scale
 )
-num_trainset = int(0.8*len(dataset))
-num_valset = int(0.2*len(dataset))
+num_trainset = 23012
+num_valset = 5754
+
 torch.manual_seed(0)
 
-
+# number of trainset and number of valset should sum up to len(dataset)
 trainset, valset = torch.utils.data.random_split(dataset, [num_trainset, num_valset])
 train_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 val_loader = DataLoader(valset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
