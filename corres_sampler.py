@@ -62,7 +62,7 @@ def random_select_positive_matches(matches_in_1, matches_in_2, num_of_pairs=1024
         random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
 
     # generate num_of_pairs random numbers in range
-    random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
+    # random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
     # print(random_index)
 
     # select samples according to the random generated index

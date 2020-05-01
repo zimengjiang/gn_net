@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
-import os
+import os, copy
 from utils import save_checkpoint, get_lr
 
 cuda = torch.cuda.is_available()
@@ -22,7 +22,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     # for epoch in range(0, start_epoch):
     # for epoch in range(1, start_epoch):
     #     scheduler.step()
-    best_loss = 0.0
+    best_loss = 100000
     if not os.path.exists(save_root):
             os.makedirs(save_root)
 
@@ -50,9 +50,10 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
                 best_loss = val_loss
                 best_model_wts = copy.deepcopy(model.state_dict())
                 save_checkpoint(best_model_wts, True, save_root, str(epoch))
+                message += '\nSaving best model ...'
         
         # save the model for every 20 epochs
-        if (epoch % log_interval/5) == 0:
+        if (epoch % (n_epochs/10)) == 0:
             message += '\nSaving checkpoint ... \n'
             save_checkpoint(model.state_dict(), False, save_root, str(epoch))
         print(message)
