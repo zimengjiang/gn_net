@@ -38,7 +38,7 @@ class CMUDataset(Dataset):
                         cmu_slice_all: bool = True,
                         cmu_slice: int =  None,
                         transform = None,
-                        img_scale: int = None
+                        img_scale: int = None,
                         ):
         self._data = {
             'name': 'cmu',

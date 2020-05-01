@@ -4,6 +4,7 @@ from trainer import fit
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import argparse
+from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser()
 
@@ -18,13 +19,15 @@ parser.add_argument('--transform', type=bool, default=True)
 parser.add_argument('--start_epoch', type=int, default=0)
 parser.add_argument('--total_epochs', type=int, default=500)
 parser.add_argument('--log_interval', type=int, default=100)
+parser.add_argument('--validation_frequency', type=int, default=10)
+parser.add_argument('--init', type=bool, default=False, help="Initialize the network weights")
 parser.add_argument('--batch_size', '-b', type=int, default=8, help="Batch size")
 parser.add_argument('--num_workers', '-n', type=int, default=1, help="Number of workers")
 parser.add_argument('--lr', type = float, default=1e-6, help="Number of workers")
 parser.add_argument('--schedule_lr_frequency', type=int, default=8, help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale', type=int, default = 4, help="Scaling factor for input image")
-parser.add_argument('--save_check_point_root', type=str, default = '/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data')
+parser.add_argument('--save_root', type=str, default = '/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data')
 
 args = parser.parse_args()
 
@@ -34,7 +37,7 @@ args = parser.parse_args()
 '''set up data loaders'''
 
 # todo: make it configurable 
-trainset = CMUDataset(root = args.dataset_root,
+dataset = CMUDataset(root = args.dataset_root,
                       name = args.dataset_name,
                       image_folder = args.dataset_image_folder,
                       pair_info_folder = args.pair_info_folder,
@@ -44,9 +47,14 @@ trainset = CMUDataset(root = args.dataset_root,
                       transform = args.transform,
                       img_scale = args.scale
 )
+num_trainset = int(0.8*len(dataset))
+num_valset = int(0.2*len(dataset))
+torch.manual_seed(0)
 
+
+trainset, valset = torch.utils.data.random_split(dataset, [num_trainset, num_valset])
 train_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-val_loader = None
+val_loader = DataLoader(valset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
 '''set up the network and training parameters'''
 from network.gnnet_model import EmbeddingNet, GNNet
@@ -67,5 +75,8 @@ optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay = 1e-3)
 scheduler = optim.lr_scheduler.StepLR(optimizer, args.schedule_lr_frequency, gamma=args.schedule_lr_fraction, last_epoch=-1) # optional
 n_epochs = args.total_epochs
 log_interval = args.log_interval
+save_root = args.save_root
+validation_frequency = args.validation_frequency
+init = args.init
 # fit the model
-fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, init=False)
+fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, validation_frequency, save_root, init)

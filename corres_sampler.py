@@ -57,7 +57,7 @@ def sample_correspondence(known_correspondence, img1, img2, sample_size=1024):
 def random_select_positive_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     # check the number of correspondences
     if matches_in_1.shape[0] < num_of_pairs:
-        random_index = random.choice(range(0, matches_in_1.shape[0]), num_of_pairs)
+        random_index = random.choices(range(0, matches_in_1.shape[0]), k=num_of_pairs)
     else:
         random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
 

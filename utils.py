@@ -1,5 +1,5 @@
 from itertools import combinations
-
+import shutil, os
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -154,3 +154,14 @@ def torch_gradient(f):
     f_grady = F.conv2d(f.view(-1,1,h,w), sobel_y, stride=1, padding=1).view(b,c,h,w)
     return f_gradx, f_grady
 
+
+def save_checkpoint(state, is_best, path, prefix, filename='checkpoint.pth.tar'):
+    prefix_save = os.path.join(path, prefix)
+    name = prefix_save + '_' + filename
+    torch.save(state, name)
+    if is_best:
+        shutil.copyfile(name, prefix_save + '_model_best.pth.tar')
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
