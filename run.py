@@ -16,14 +16,14 @@ parser.add_argument('--all_slice', type=bool, default=True)
 parser.add_argument('--slice', type=int, default=6)
 parser.add_argument('--transform', type=bool, default=True)
 parser.add_argument('--start_epoch', type=int, default=0)
-parser.add_argument('--total_epochs', type=int, default=500)
-parser.add_argument('--log_interval', type=int, default=100)
-parser.add_argument('--batch_size', '-b', type=int, default=8, help="Batch size")
+parser.add_argument('--total_epochs', type=int, default=200)
+parser.add_argument('--log_interval', type=int, default=10)
+parser.add_argument('--batch_size', '-b', type=int, default=32, help="Batch size")
 parser.add_argument('--num_workers', '-n', type=int, default=1, help="Number of workers")
-parser.add_argument('--lr', type = float, default=1e-6, help="Number of workers")
-parser.add_argument('--schedule_lr_frequency', type=int, default=8, help='in number of iterations (0 for no schedule)')
+parser.add_argument('--lr', type = float, default=1e-3, help="Number of workers")
+parser.add_argument('--schedule_lr_frequency', type=int, default=10, help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
-parser.add_argument('--scale', type=int, default = 4, help="Scaling factor for input image")
+parser.add_argument('--scale', type=int, default = 2, help="Scaling factor for input image")
 parser.add_argument('--save_check_point_root', type=str, default = '/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data')
 
 args = parser.parse_args()
@@ -33,7 +33,7 @@ args = parser.parse_args()
 
 '''set up data loaders'''
 
-# todo: make it configurable 
+# todo: make it configurable
 trainset = CMUDataset(root = args.dataset_root,
                       name = args.dataset_name,
                       image_folder = args.dataset_image_folder,
@@ -47,6 +47,10 @@ trainset = CMUDataset(root = args.dataset_root,
 
 train_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 val_loader = None
+
+print("begin: \n")
+print(args)
+print("\n")
 
 '''set up the network and training parameters'''
 from network.gnnet_model import EmbeddingNet, GNNet

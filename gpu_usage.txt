@@ -7,7 +7,7 @@ module load gcc/6.3.0 python_gpu/3.7.4
 module load eth_proxy
 module load hdf5/1.10.1
 
-bsub -n 8 -W 24:00 -wt 10 -wa INT -R "select[gpu_model0==TeslaV100_SXM2_32GB] rusage[mem=10000, ngpus_excl_p=1]"  sh run.sh
+bsub -n 20 -W 24:00 -wt 10 -wa INT -R "select[gpu_model0==TeslaV100_SXM2_32GB] rusage[mem=10240, ngpus_excl_p=1]"  sh run.sh
 
 or
 

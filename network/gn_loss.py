@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn 
 import numpy as np
-import torchsnooper
+# import torchsnooper
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
 
 cuda = torch.cuda.is_available()
@@ -19,6 +19,7 @@ class GNLoss(nn.Module):
         self.pair_selector = MyHardNegativePairSelector()
         self.lamda = lamda
         self.img_scale = img_scale # original colored image is scaled by a factor img_scale.
+
 
     def extract_features(self, f, indices):
         '''
@@ -52,6 +53,7 @@ class GNLoss(nn.Module):
 
         # return torch.index_select(f_2d, -1, f_idx_2d).transpose(0,1)
         # return torch.index_select(f_2d, -1, f_idx_2d)
+
 
     def compute_contrastive_loss(self, fa, fb, N, pos):
 
@@ -118,7 +120,8 @@ class GNLoss(nn.Module):
         e2 = B*N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device) 
         e = e1 + e2
         return e
-    
+
+
     def forward(self, F_a, F_b, known_matches):
         '''
         F_a is a list containing 4 feature maps of different shapes

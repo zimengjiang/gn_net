@@ -6,4 +6,4 @@ python run.py \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \
 --query_folder 'query' \
---scale 4
+--scale 2
