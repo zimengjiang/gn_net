@@ -75,17 +75,17 @@ class CMUDataset(Dataset):
         if not len(pair_files):
             raise Exception('No correspondence file found at {}'.format(pair_file_roots))
         if not cmu_slice_all:
-            print(('>> Found {} image pairs for slice {}').format(len(pair_files), cmu_slice))
+            print('>> Found {} image pairs for slice {}'.format(len(pair_files), cmu_slice))
         else:
-            print(('>> Found {} image pairs for all slice').format(len(pair_files)))
+            print('>> Found {} image pairs for all slice'.format(len(pair_files)))
         self._data['pair_file_names'] = pair_files
 
     def load_image_pairs(self, cmu_slice, cmu_slice_all):
         N = len(self._data['pair_file_names'])  # number of image pairs
         image_pairs = {'a': [], 'b': []}
         corres_all_pos = {'a': [], 'b': []}
-        # /public_data/cmu/images
-        # query_root = Path(self._data['root'], self._data['name'], self._data['image_folder'], self._data['slice_folder'], self._data['queries_folder'])
+        # /public_data/cmu/images query_root = Path(self._data['root'], self._data['name'], self._data[
+        # 'image_folder'], self._data['slice_folder'], self._data['queries_folder'])
         for f in self._data['pair_file_names']:
             # pair_info = scipy.io.loadmat(f)
             pair_info = h5py.File(f, 'r+')
@@ -135,15 +135,4 @@ class CMUDataset(Dataset):
     def __len__(self):
         assert len(self._data['image_pairs_name']['a']) == len(self._data['image_pairs_name']['b'])
         return len(self._data['image_pairs_name']['a'])
-
-
-
-
-
-
-
-
-
-
-
 
