@@ -30,6 +30,7 @@ parser.add_argument('--schedule_lr_frequency', type=int, default=10, help='in nu
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale', type=int, default=4, help="Scaling factor for input image")
 parser.add_argument('--save_root', type=str, default='/cluster/work/riner/users/PLR-2020/lechen/gn_net/gn_net_data')
+parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
 
 args = parser.parse_args()
 
@@ -95,7 +96,7 @@ model = GNNet(embedding_net)
 model = model.to(device)
 # set up loss
 margin = 1.
-loss_fn = GNLoss(margin=1, lamda=0.003, img_scale=args.scale)
+loss_fn = GNLoss(margin=1, lamda=args.gn_loss_lamda, img_scale=args.scale)
 optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-3)
 scheduler = optim.lr_scheduler.StepLR(optimizer, args.schedule_lr_frequency, gamma=args.schedule_lr_fraction,
                                       last_epoch=-1)  # optional
