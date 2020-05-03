@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 # import torchsnooper
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
+from corres_sampler import random_select_negative_matches
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -88,7 +89,8 @@ class GNLoss(nn.Module):
             
         # xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
 
-        xs = torch.rand(ub.shape).to(device) + ub.to(device)
+        # xs = torch.rand(ub.shape).to(device) + ub.to(device)
+        xs = torch.FloatTensor(ub.shape).uniform_(-1, 1)+ub.to(device)
         # torch.clamp(min=0, max = self.max_size[1], xs[:]) # self.max_size: H x W
         f_s = self.extract_features(fb, xs)
         # compute residual
@@ -96,7 +98,7 @@ class GNLoss(nn.Module):
         # compute Jacobian
 
         # modified
-        f_s_gx, f_s_gy = torch_gradient(fb) # problematic 
+        f_s_gx, f_s_gy = torch_gradient(fb)  
         J_xs_x = self.extract_features(f_s_gx, xs)
         J_xs_y = self.extract_features(f_s_gy, xs)
 
@@ -144,8 +146,8 @@ class GNLoss(nn.Module):
         fb_4_sliced = self.extract_features(F_b[-1], known_matches['b']/self.img_scale) # //4
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
         # get hard negative samples
-        negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches, self.img_scale) #//.cuda 4 inside pair selector
-
+        # negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches, self.img_scale) #//.cuda 4 inside pair selector
+        negative_matches = random_select_negative_matches(known_matches['a',known_matches['b'], num_of_pairs=1024])
         '''compute loss for each scale'''
         loss= 0
         N = known_matches['a'].shape[1] # the number of pos and neg matches
@@ -157,9 +159,10 @@ class GNLoss(nn.Module):
             else:
                 fa_sliced_pos = self.extract_features(F_a[i], known_matches['a'] / (level * self.img_scale)) #(level*4)) #TODO: use bilinear interpolation in extract_features
                 fb_sliced_pos = self.extract_features(F_b[i], known_matches['b'] / (level * self.img_scale)) #(level*4))
-            fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) # don't //4 here. negative_matches are in the same scale as known_matches//4
-            fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level)
-
+            # fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) # don't //4 here. negative_matches are in the same scale as known_matches//4
+            # fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level)
+            fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / (level*self.img_scale)) 
+            fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / (level*self.img_scale))
             '''compute contrastive loss'''
             # loss of positive pairs:
             loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos, N, pos = True)

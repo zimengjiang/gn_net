@@ -77,8 +77,10 @@ def random_select_positive_matches(matches_in_1, matches_in_2, num_of_pairs=1024
     return matches_in_1_random_selected, matches_in_2_random_selected
 def random_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     # check the number of correspondences
-    if matches_in_1.shape[0] < num_of_pairs:
-        return None, None
+     if matches_in_1.shape[0] < num_of_pairs:
+        random_index = random.choices(range(0, matches_in_1.shape[0]), k=num_of_pairs)
+    else:
+        random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
 
     # generate num_of_pairs random numbers in range
     random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
