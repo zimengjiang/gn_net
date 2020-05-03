@@ -149,7 +149,9 @@ def test_epoch(val_loader, model, loss_fn, cuda):
             if cuda:
                 img_ab = tuple(d.to(device) for d in img_ab)
                 if corres_ab is not None:
-                    corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
+                    # corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
+                    for c in corres_ab:
+                        c = {key: c[key].to(device) for key in c}
 
             outputs = model(*img_ab)
 
