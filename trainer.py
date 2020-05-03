@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import os, copy
+import matplotlib.pyplot as plt
 from utils import save_checkpoint, get_lr
 from tqdm import tqdm
 
@@ -27,6 +28,11 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     if not os.path.exists(save_root):
         os.makedirs(save_root)
 
+    val_x = []
+    val_y = []
+    train_x = []
+    train_y = []
+
     for epoch in range(start_epoch, n_epochs):
         # scheduler.step()
         '''
@@ -38,12 +44,16 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
 
         # Train stage
         train_loss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init=False)
+        train_x.append(epoch + 1)
+        train_y.append(train_loss)
         scheduler.step()
         message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}'.format(epoch + 1, n_epochs, train_loss)
         message += ' Lr:{}'.format(get_lr(optimizer))
         if val_loader and (epoch % validation_frequency == 0):
             val_loss = test_epoch(val_loader, model, loss_fn, cuda)
             val_loss /= len(val_loader)
+            val_x.append(epoch + 1)
+            val_y.append(val_loss)
             message += '\nEpoch: {}/{}. Validation set: Average loss: {:.4f}'.format(epoch + 1, n_epochs,
                                                                                      val_loss)
             # save the currently best model
@@ -58,6 +68,14 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
             message += '\nSaving checkpoint ... \n'
             save_checkpoint(model.state_dict(), False, save_root, str(epoch))
         print(message)
+        plt.figure()
+        plt.title("train_val_loss_pic")
+        plt.xlabel("epoch")
+        plt.ylabel("loss_value")
+        plt.plot(val_x, val_y, "-s", label='val')
+        plt.plot(train_x, train_y, "+-", label='train')
+        plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
+        plt.savefig("./train_val_loss_pic.png")
 
 
 def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init):

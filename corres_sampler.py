@@ -6,6 +6,8 @@ import random
 ''' some codes from github：
     https://github.com/adambielski/siamese-triplet/blob/master/utils.py
 '''
+
+
 def pdist(vectors):
     distance_matrix = -2 * vectors.mm(torch.t(vectors)) + vectors.pow(2).sum(dim=1).view(1, -1) + vectors.pow(2).sum(
         dim=1).view(-1, 1)
@@ -75,6 +77,8 @@ def random_select_positive_matches(matches_in_1, matches_in_2, num_of_pairs=1024
     # print(matches_in_2_random_selected)
 
     return matches_in_1_random_selected, matches_in_2_random_selected
+
+
 def random_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     # check the number of correspondences
     if matches_in_1.shape[0] < num_of_pairs:
@@ -159,6 +163,7 @@ def hard_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     # return matches_in_1_random_selected, matches_in_2_random_selected
     return matches_in_2_hard_selected
 
+
 def corres_sampler():
     # scipy.io.savemat(data_corr, {'matches':matches, 'img1':img1, 'img2':img2})
     data = scipy.io.loadmat('all_correspondences.mat')
@@ -182,7 +187,6 @@ def corres_sampler():
     print(pos_correspondences)
     print(neg_correspondences_random)
     print(neg_correspondences_hard)
-
 
 # if __name__ == '__main__':
 #     corres_sampler()
