@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 from glob import glob
-from corres_sampler import random_select_positive_matches
+from corres_sampler import random_select_positive_matches, random_select_negative_matches
 import scipy.io
 import h5py  # for loading v7.3 .mat
 
@@ -123,14 +123,14 @@ class CMUDataset(Dataset):
         a = self._data['corres_pos_all']['a'][idx].squeeze()
         b = self._data['corres_pos_all']['b'][idx].squeeze()
         pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=1024)
-        # neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=1024)
+        neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=1024)
         corres_ab_pos = {'a': pos_a, 'b': pos_b}
-        # corres_ab_neg = {'a':neg_a, 'b':neg_b}
+        corres_ab_neg = {'a':neg_a, 'b':neg_b}
         if self.transform:
             img_a = self.default_transform(Image.open(img_a))
             img_b = self.default_transform(Image.open(img_b))
-        # return (img_a, img_b), (corres_ab_pos,corres_ab_neg)
-        return (img_a, img_b), corres_ab_pos
+        return (img_a, img_b), (corres_ab_pos,corres_ab_neg)
+        # return (img_a, img_b), corres_ab_pos
 
     def __len__(self):
         assert len(self._data['image_pairs_name']['a']) == len(self._data['image_pairs_name']['b'])

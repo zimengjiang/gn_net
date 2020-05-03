@@ -3,13 +3,14 @@ import numpy as np
 import torch.nn as nn
 import os, copy
 from utils import save_checkpoint, get_lr
+from tqdm import tqdm
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 
 
-
-def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, validation_frequency, save_root, init,
+def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval,
+        validation_frequency, save_root, init,
         start_epoch=0):
     """
     Loaders, model, loss function and metrics should work together for a given task,
@@ -24,7 +25,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     #     scheduler.step()
     best_loss = 100000
     if not os.path.exists(save_root):
-            os.makedirs(save_root)
+        os.makedirs(save_root)
 
     for epoch in range(start_epoch, n_epochs):
         # scheduler.step()
@@ -36,32 +37,31 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         '''
 
         # Train stage
-        train_loss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init = False)
+        train_loss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init=False)
         scheduler.step()
-        message = 'Epoch: {}/{}. Train set: Average loss: {:.4f}'.format(epoch + 1, n_epochs, train_loss)
+        message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}'.format(epoch + 1, n_epochs, train_loss)
         message += ' Lr:{}'.format(get_lr(optimizer))
         if val_loader and (epoch % validation_frequency == 0):
             val_loss = test_epoch(val_loader, model, loss_fn, cuda)
             val_loss /= len(val_loader)
             message += '\nEpoch: {}/{}. Validation set: Average loss: {:.4f}'.format(epoch + 1, n_epochs,
-                                                            val_loss)
+                                                                                     val_loss)
             # save the currently best model
             if val_loss < best_loss:
                 best_loss = val_loss
                 best_model_wts = copy.deepcopy(model.state_dict())
                 save_checkpoint(best_model_wts, True, save_root, str(epoch))
                 message += '\nSaving best model ...'
-        
+
         # save the model for every 20 epochs
-        if (epoch % (n_epochs/10)) == 0:
+        if (epoch % (n_epochs / 10)) == 0:
             message += '\nSaving checkpoint ... \n'
             save_checkpoint(model.state_dict(), False, save_root, str(epoch))
         print(message)
 
 
 def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init):
-
-    # initialize network parameters, oscillates a lot here. not good 
+    # initialize network parameters, oscillates a lot here. not good
     if init:
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
@@ -72,7 +72,7 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
     losses = []
     total_loss = 0
 
-    for batch_idx, (img_ab, corres_ab) in enumerate(train_loader):
+    for batch_idx, (img_ab, corres_ab) in enumerate(tqdm(train_loader)):
         corres_ab = corres_ab if len(corres_ab) > 0 else None
         if not type(img_ab) in (tuple, list):
             img_ab = (img_ab,)
@@ -81,8 +81,10 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
             if corres_ab is not None:
                 # corres_ab = corres_ab.cuda()
                 # modified
-                corres_ab={key:corres_ab[key].to(device) for key in corres_ab}
-
+                # corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
+                # modified by jzm
+                for c in corres_ab:
+                    c = {key: c[key].to(device) for key in c}
 
         optimizer.zero_grad()
         outputs = model(*img_ab)
@@ -122,14 +124,14 @@ def test_epoch(val_loader, model, loss_fn, cuda):
     with torch.no_grad():
         model.eval()
         val_loss = 0
-        for batch_idx, (img_ab, corres_ab)  in enumerate(val_loader):
+        for batch_idx, (img_ab, corres_ab) in enumerate(val_loader):
             corres_ab = corres_ab if len(corres_ab) > 0 else None
             if not type(img_ab) in (tuple, list):
                 img_ab = (img_ab,)
             if cuda:
                 img_ab = tuple(d.to(device) for d in img_ab)
                 if corres_ab is not None:
-                    corres_ab={key:corres_ab[key].to(device) for key in corres_ab}
+                    corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
 
             outputs = model(*img_ab)
 
