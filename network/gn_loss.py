@@ -58,12 +58,24 @@ class GNLoss(nn.Module):
     def compute_contrastive_loss(self, fa, fb, N, pos):
 
         diff = fa - fb
+        D_feat = torch.norm(diff, p=2, dim=1)
+        # length = len(D_feat[D_feat<1])
         if pos:
-            return torch.sum(torch.pow(diff, 2) / N)
-        mdist = self.margin - diff
+            return torch.sum(torch.pow(D_feat,2) / N)
+        mdist = self.margin - D_feat
+        # length = len(D_feat[D_feat<self.margin])
         mdist = torch.clamp(mdist, min=0.0)
+        return torch.sum(torch.pow(mdist,2) / N)
 
-        return torch.sum(torch.pow(mdist, 2) / N)
+        # wrong:
+        # diff = fa - fb
+        # if pos:
+        #     return torch.sum(torch.pow(diff, 2) / N)
+        # mdist = self.margin - diff
+        # mdist = torch.clamp(mdist, min=0.0)
+
+        # return torch.sum(torch.pow(mdist, 2) / N)
+
 
     # @torchsnooper.snoop()
     def compute_gn_loss(self, f_t, fb, ub, level):
@@ -86,7 +98,7 @@ class GNLoss(nn.Module):
         # check if go beyound boundaries
 
         # xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
-        xs = 3/level * torch.FloatTensor(ub.shape).uniform_(-1, 1).to(device) + ub.to(device)
+        xs = torch.FloatTensor(ub.shape).normal_(0).to(device) + ub.to(device)
         # xs = torch.rand(ub.shape).to(device) + ub.to(device)
         # torch.clamp(min=0, max = self.max_size[1], xs[:]) # self.max_size: H x W
         f_s = self.extract_features(fb, xs)
