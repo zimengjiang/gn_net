@@ -132,6 +132,12 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
 
             print(message)
             losses = []
+        
+        # Delete and empty cache
+        # del feature_maps, feature_map, upsampled_map
+        del img_ab
+        del corres_ab
+        torch.cuda.empty_cache()
 
     total_loss /= (batch_idx + 1)
 
