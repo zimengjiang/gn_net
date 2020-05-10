@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-# import torchsnooper
+import torchsnooper
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
 
 cuda = torch.cuda.is_available()
@@ -55,6 +55,7 @@ class GNLoss(nn.Module):
         # return torch.index_select(f_2d, -1, f_idx_2d).transpose(0,1)
         # return torch.index_select(f_2d, -1, f_idx_2d)
 
+
     def compute_contrastive_loss(self, fa, fb, N, pos):
 
         diff = fa - fb
@@ -86,6 +87,7 @@ class GNLoss(nn.Module):
         '''
         # compute start point and its feature
         # ub = corres_pos['b']
+        ub = ub.to(device)
         B, N, _ = ub.shape
         # xs = torch.round(torch.rand(ub.shape) + ub) #round this causes bugs in bilinear interpolation!!! all weights becomes 0!
 
@@ -194,6 +196,8 @@ class GNLoss(nn.Module):
         {'a':BxNx2,'b':BxNx2}
 
         '''
+        # for c in known_matches:
+        #     c = {key: c[key].to(device) for key in c}
         positive_matches = known_matches[0]
         negative_matches = known_matches[1]
         self.max_size_x = F_a[-1].shape[3]  # B x C x H x W
@@ -207,6 +211,8 @@ class GNLoss(nn.Module):
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
         '''compute loss for each scale'''
         loss = 0
+        contras_loss = 0
+        gnloss = 0
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
             level = np.power(2, 3 - i)
@@ -228,6 +234,8 @@ class GNLoss(nn.Module):
 
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
-            loss = (loss_pos + loss_neg) + (self.lamda * loss_gn) + loss
-        print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
-        return loss
+            loss = 100*(loss_pos + loss_neg) + (self.lamda * loss_gn) + loss
+            contras_loss = 100*(loss_pos + loss_neg) + contras_loss
+            gnloss = (self.lamda * loss_gn) + gnloss
+        # print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
+        return loss, contras_loss, gnloss
