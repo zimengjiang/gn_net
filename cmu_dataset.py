@@ -122,8 +122,8 @@ class CMUDataset(Dataset):
         img_b = self._data['image_pairs_name']['b'][idx]
         a = self._data['corres_pos_all']['a'][idx].squeeze()
         b = self._data['corres_pos_all']['b'][idx].squeeze()
-        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=800)
-        neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=800)
+        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=2000)
+        neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=2000)
         corres_ab_pos = {'a': pos_a, 'b': pos_b}
         corres_ab_neg = {'a':neg_a, 'b':neg_b}
         if self.transform:

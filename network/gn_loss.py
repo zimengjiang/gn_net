@@ -211,6 +211,8 @@ class GNLoss(nn.Module):
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
         '''compute loss for each scale'''
         loss = 0
+        contras_loss = 0
+        gnloss = 0
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
             level = np.power(2, 3 - i)
@@ -232,6 +234,8 @@ class GNLoss(nn.Module):
 
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
-            loss = (loss_pos + loss_neg) + (self.lamda * loss_gn) + loss
+            loss = 100*(loss_pos + loss_neg) + (self.lamda * loss_gn) + loss
+            contras_loss = 100*(loss_pos + loss_neg) + contras_loss
+            gnloss = (self.lamda * loss_gn) + gnloss
         # print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
-        return loss
+        return loss, contras_loss, gnloss

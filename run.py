@@ -7,7 +7,7 @@ import argparse
 from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
-
+# import wandb
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--dataset_root', type=str, default='/local/home/lixxue/gnnet/gn_net_data')
@@ -27,14 +27,14 @@ parser.add_argument('--batch_size', '-b', type=int, default=2, help="Batch size"
 parser.add_argument('--num_workers', '-n', type=int, default=16, help="Number of workers")
 parser.add_argument('--lr', type = float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency', type=int, default=5, help='in number of iterations (0 for no schedule)')
-parser.add_argument('--schedule_lr_fraction', type=float, default=0.3)
+parser.add_argument('--schedule_lr_fraction', type=float, default=1)
 parser.add_argument('--scale', type=int, default = 2, help="Scaling factor for input image")
 parser.add_argument('--save_root', type=str, default = '/local/home/lixxue/gnnet/gn_net_data')
-parser.add_argument('--gn_loss_lamda', type=float, default=0.5)
+parser.add_argument('--gn_loss_lamda', type=float, default=0.005)
 parser.add_argument('--weight_decay', type=float, default=0.001)
 
 args = parser.parse_args()
-
+# wandb.init(config=args)
 # scale the original image by the factor of img_scale
 # img_scale = 2
 
@@ -60,6 +60,7 @@ print('num_valset: {} \n'.format(num_valset))
 
 print('Arguments & hyperparams: ')
 print(args)
+print("contrstive loss lambda=100, num_of_pairs=2000")
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
