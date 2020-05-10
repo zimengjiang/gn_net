@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import torchsnooper
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
 
 cuda = torch.cuda.is_available()
@@ -15,11 +14,12 @@ class GNLoss(nn.Module):
     GN loss function.
     '''
 
-    def __init__(self, margin=1.0, lamda=0.3, img_scale=2):
+    def __init__(self, margin=1.0, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2):
         super(GNLoss, self).__init__()
         self.margin = margin
         self.pair_selector = MyHardNegativePairSelector()
-        self.lamda = lamda
+        self.gn_lamda = gn_lamda
+        self.contrastive_lamda = contrastive_lamda
         self.img_scale = img_scale  # original colored image is scaled by a factor img_scale.
 
     def extract_features(self, f, indices):
@@ -234,8 +234,8 @@ class GNLoss(nn.Module):
 
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
-            loss = 100*(loss_pos + loss_neg) + (self.lamda * loss_gn) + loss
-            contras_loss = 100*(loss_pos + loss_neg) + contras_loss
-            gnloss = (self.lamda * loss_gn) + gnloss
+            loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
+            contras_loss = self.contrastive_lamda*(loss_pos + loss_neg) + contras_loss
+            gnloss = (self.gn_lamda * loss_gn) + gnloss
         # print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
         return loss, contras_loss, gnloss

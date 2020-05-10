@@ -31,7 +31,10 @@ parser.add_argument('--schedule_lr_fraction', type=float, default=1)
 parser.add_argument('--scale', type=int, default = 2, help="Scaling factor for input image")
 parser.add_argument('--save_root', type=str, default = '/local/home/lixxue/gnnet/gn_net_data')
 parser.add_argument('--gn_loss_lamda', type=float, default=0.005)
+parser.add_argument('--contrastive_lamda', type=float, default=1000)
 parser.add_argument('--weight_decay', type=float, default=0.001)
+parser.add_argument('--num_matches', type=float, default=2000)
+
 
 args = parser.parse_args()
 # wandb.init(config=args)
@@ -76,7 +79,8 @@ dataset = CMUDataset(root=args.dataset_root,
                      cmu_slice=args.slice,
                      queries_folder=args.query_folder,
                      transform=args.transform,
-                     img_scale=args.scale
+                     img_scale=args.scale,
+                     num_matches=args.num_matches
                      )
 
 torch.manual_seed(0)
@@ -98,7 +102,7 @@ model = GNNet(embedding_net)
 model = model.to(device)
 # set up loss
 margin = 1.
-loss_fn = GNLoss(margin=1, lamda=args.gn_loss_lamda, img_scale=args.scale)
+loss_fn = GNLoss(margin=1, contrastive_lamda=args.contrastive_lamda, gn_lamda=args.gn_loss_lamda, img_scale=args.scale)
 optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 scheduler = optim.lr_scheduler.StepLR(optimizer, args.schedule_lr_frequency, gamma=args.schedule_lr_fraction,
                                       last_epoch=-1)  # optional

@@ -39,7 +39,8 @@ class CMUDataset(Dataset):
                  cmu_slice_all: bool = True,
                  cmu_slice: int = None,
                  transform=None,
-                 img_scale: int = None
+                 img_scale: int = None,
+                 num_matches: int = None
                  ):
         self._data = {
             'name': 'cmu',
@@ -51,7 +52,8 @@ class CMUDataset(Dataset):
             'queries_folder': queries_folder,
             'image_pairs_name': None,
             'corres_pos_all': None,
-            'scale': img_scale
+            'scale': img_scale,
+            'num_matches': num_matches
         }
         if not cmu_slice_all:
             self._data['slice_folder'] = 'slice{}'.format(cmu_slice)
@@ -122,8 +124,8 @@ class CMUDataset(Dataset):
         img_b = self._data['image_pairs_name']['b'][idx]
         a = self._data['corres_pos_all']['a'][idx].squeeze()
         b = self._data['corres_pos_all']['b'][idx].squeeze()
-        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=2000)
-        neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=2000)
+        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
+        neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=self._data['num_matches'])
         corres_ab_pos = {'a': pos_a, 'b': pos_b}
         corres_ab_neg = {'a':neg_a, 'b':neg_b}
         if self.transform:

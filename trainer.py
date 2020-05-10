@@ -13,7 +13,7 @@ device = torch.device("cuda:0" if cuda else "cpu")
 
 
 def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval,
-        validation_frequency, save_root, init,
+        validation_frequency, save_root, init, 
         start_epoch=0):
     """
     Loaders, model, loss function and metrics should work together for a given task,
