@@ -68,7 +68,3 @@ class GNNet(nn.Module):
 
     def get_embedding(self, x):
         return self.embedding_net(x)
-
-        
-
-

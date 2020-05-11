@@ -34,6 +34,7 @@ parser.add_argument('--gn_loss_lamda', type=float, default=0.005)
 parser.add_argument('--contrastive_lamda', type=float, default=1000)
 parser.add_argument('--weight_decay', type=float, default=0.001)
 parser.add_argument('--num_matches', type=float, default=2000)
+parser.add_argument('--resume_checkpoint', type=str, default=None)
 
 
 args = parser.parse_args()
@@ -100,6 +101,9 @@ print("****** START ****** \n")
 embedding_net = EmbeddingNet()
 model = GNNet(embedding_net)
 model = model.to(device)
+if (args.resume_checkpoint):     
+    model.load_state_dict(torch.load(args.resume_checkpoint,map_location=torch.device(device)))
+
 # set up loss
 margin = 1.
 loss_fn = GNLoss(margin=1, contrastive_lamda=args.contrastive_lamda, gn_lamda=args.gn_loss_lamda, img_scale=args.scale)
