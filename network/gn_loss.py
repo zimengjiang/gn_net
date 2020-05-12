@@ -185,6 +185,9 @@ class GNLoss(nn.Module):
         return loss
     
     def forward(self, F_a, F_b, known_matches):
+        for i in range(len(F_a)):
+            torch.save(F_a[i],"gn_f{}_ckp24.pt".format(i))
+
         '''
         F_a is a list containing 4 feature maps of different shapes
         1: B x C X H/8 x W/8

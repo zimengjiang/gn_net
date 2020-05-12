@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from network.unet_parts import *
 
 class EmbeddingNet(nn.Module):
-    def __init__(self, n_channels = 3, D = 16, bilinear=False):
+    def __init__(self, n_channels = 3, D = 16, bilinear=False, nearest=False):
         super(EmbeddingNet, self).__init__()
         self.n_channels = n_channels
         self.D = D
@@ -14,15 +14,17 @@ class EmbeddingNet(nn.Module):
         self.down1 = Down(32, 64)
         self.down2 = Down(64, 128)
         self.down3 = Down(128, 256)
-        factor = 2 if bilinear else 1
-        self.down4 = Down(256, 512 // factor)
-        self.up1 = Up(512, 256, bilinear)
+        # factor = 2 if bilinear else 1
+        # self.down4 = Down(256, 512 // factor)
+        self.down4 = Down(256, 512)
+        self.up1 = Up(512, 256, bilinear, nearest)
         self.F1 = OutConv(256, D)
-        self.up2 = Up(256, 128, bilinear)
+        self.up2 = Up(256, 128, bilinear, nearest)
         self.F2 = OutConv(128, D)
-        self.up3 = Up(128, 64, bilinear)
+        self.up3 = Up(128, 64, bilinear, nearest)
         self.F3 = OutConv(64, D)
-        self.up4 = Up(64, 32 * factor, bilinear) # gives output features
+        # self.up4 = Up(64, 32 * factor, bilinear) # gives output features
+        self.up4 = Up(64, 32, bilinear, nearest) # gives output features
         self.F4 = OutConv(32, D)
         # self.outc = OutConv(64, D)
     

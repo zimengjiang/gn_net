@@ -35,6 +35,8 @@ parser.add_argument('--contrastive_lamda', type=float, default=1000)
 parser.add_argument('--weight_decay', type=float, default=0.001)
 parser.add_argument('--num_matches', type=float, default=2000)
 parser.add_argument('--resume_checkpoint', type=str, default=None)
+parser.add_argument('--nearest', type=bool, default=True, help="upsampling mode")
+parser.add_argument('--bilinear', type=bool, default=False, help="upsampling mode")
 
 
 args = parser.parse_args()
@@ -98,11 +100,12 @@ from network.gn_loss import GNLoss
 print("****** START ****** \n")
 
 # set up model
-embedding_net = EmbeddingNet()
+embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
 model = GNNet(embedding_net)
 model = model.to(device)
 if (args.resume_checkpoint):     
     model.load_state_dict(torch.load(args.resume_checkpoint,map_location=torch.device(device)))
+
 
 # set up loss
 margin = 1.
