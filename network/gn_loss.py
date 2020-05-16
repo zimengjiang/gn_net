@@ -154,8 +154,11 @@ class GNLoss(nn.Module):
         '''
         # for c in known_matches:
         #     c = {key: c[key].to(device) for key in c}
-        positive_matches = known_matches[0]
-        negative_matches = known_matches[1]
+        
+        # modified: if use hard
+        # positive_matches = known_matches[0]
+        # negative_matches = known_matches[1]
+        positive_matches = known_matches
         self.max_size_x = F_a[-1].shape[3]  # B x C x H x W
         self.max_size_y = F_a[-1].shape[2]
         '''get neg pairs, do it only for the finest feature'''
@@ -165,10 +168,15 @@ class GNLoss(nn.Module):
         # fa_4_sliced_reshape = fa_4_sliced.reshape((B,N,C))
         fb_4_sliced = self.extract_features(F_b[-1], positive_matches['b'] / self.img_scale)  # //4
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
+        # get hard negative samples
+        negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches, self.img_scale) #//.cuda 4 inside pair selector
+        
         '''compute loss for each scale'''
         loss = 0
         contras_loss = 0
         gnloss = 0
+        pos_loss = 0
+        neg_loss = 0
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
             level = np.power(2, 3 - i)
@@ -194,5 +202,7 @@ class GNLoss(nn.Module):
             loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
             contras_loss = self.contrastive_lamda*(loss_pos + loss_neg) + contras_loss
             gnloss = (self.gn_lamda * loss_gn) + gnloss
+            pos_loss = self.contrastive_lamda*loss_pos + pos_loss
+            neg_loss = self.contrastive_lamda*loss_neg + neg_loss
         # print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
-        return loss, contras_loss, gnloss
+        return loss, contras_loss, gnloss, pos_loss, neg_loss

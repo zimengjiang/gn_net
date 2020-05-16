@@ -34,10 +34,15 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     val_y = []
     val_y_contras = []
     val_y_gn = []
+    val_y_loss_pos = [] 
+    val_y_loss_neg = []
+
     train_x = []
     train_y = []
     train_y_contras = []
     train_y_gn = []
+    train_y_loss_pos = [] 
+    train_y_loss_neg = []
 
     for epoch in range(start_epoch, n_epochs):
         # scheduler.step()
@@ -49,25 +54,31 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         '''
 
         # Train stage
-        train_loss, total_contras_loss, total_gnloss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init=False)
+        train_loss, total_contras_loss, total_gnloss, total_loss_pos, total_loss_neg = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init=False)
         train_x.append(epoch + 1)
         train_y.append(train_loss)
         train_y_contras.append(total_contras_loss)
         train_y_gn.append(total_gnloss)
+        train_y_loss_pos.append(total_loss_pos)
+        train_y_loss_neg.append(total_loss_neg)
 
         scheduler.step()
         message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}\tcontrastive loss: {:.6f}\tgn loss: {:.6f}'.format(epoch + 1, n_epochs, train_loss, total_contras_loss, total_gnloss)
         message += ' Lr:{}'.format(get_lr(optimizer))
         if val_loader and (epoch % validation_frequency == 0):
-            val_loss, val_contras_loss, val_gnloss = test_epoch(val_loader, model, loss_fn, cuda)
+            val_loss, val_contras_loss, val_gnloss, val_loss_pos, val_loss_neg = test_epoch(val_loader, model, loss_fn, cuda)
             val_loss /= len(val_loader)
             val_contras_loss /= len(val_loader)
             val_gnloss /= len(val_loader)
+            val_loss_pos /= len(val_loader)
+            val_loss_neg /= len(val_loader)
 
             val_x.append(epoch + 1)
             val_y.append(val_loss)
             val_y_contras.append(val_contras_loss)
             val_y_gn.append(val_gnloss)
+            val_y_loss_pos.append(val_loss_pos)
+            val_y_loss_neg.append(val_loss_neg)
 
             message += '\nEpoch: {}/{}. Validation set: Average loss: {:.4f}\tcontrastive loss: {:.6f}\tgn loss: {:.6f}'.format(epoch + 1, n_epochs, val_loss, val_contras_loss, val_gnloss)
             # save the currently best model
@@ -83,19 +94,38 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
             save_checkpoint(model.state_dict(), False, save_root, str(epoch))
         print(message)
 
+        # plt.figure(figsize=(12,8))
+        # # plt.subplot(2, 2, 1)
+        # plt.title("all_loss")
+        # # plt.xlabel("epoch")
+        # # plt.ylabel("loss_value")
+        # plt.plot(val_x, val_y, "-s", label='val_total')
+        # plt.plot(val_x, val_y_contras, "-o", label='val_contrastive')
+        # plt.plot(val_x, val_y_gn, "-*", label='val_gn')
+        # plt.plot(train_x, train_y, "+-", label='train_total')
+        # plt.plot(train_x, train_y_contras, "-x", label='train_contrastive')
+        # plt.plot(train_x, train_y_gn, "->", label='train_gn')
+        # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
+        # plt.savefig("./all_loss_pic.png")
+
         plt.figure(figsize=(12,8))
-        # plt.subplot(2, 2, 1)
-        plt.title("all_loss")
+        plt.subplot(2, 1, 1)
+        plt.title("loss pos")
         # plt.xlabel("epoch")
         # plt.ylabel("loss_value")
-        plt.plot(val_x, val_y, "-s", label='val_total')
-        plt.plot(val_x, val_y_contras, "-o", label='val_contrastive')
-        plt.plot(val_x, val_y_gn, "-*", label='val_gn')
-        plt.plot(train_x, train_y, "+-", label='train_total')
-        plt.plot(train_x, train_y_contras, "-x", label='train_contrastive')
-        plt.plot(train_x, train_y_gn, "->", label='train_gn')
+        plt.plot(val_x, val_y_loss_pos, "-s", label='val_total')
+        plt.plot(train_x, train_y_loss_pos, "+-", label='train_total')
         plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
-        plt.savefig("./all_loss_pic.png")
+
+        plt.subplot(2, 1, 2)
+        plt.title("loss neg")
+        # plt.xlabel("epoch")
+        # plt.ylabel("loss_value")
+        plt.plot(val_x, val_y_loss_neg, "-s", label='val_total')
+        plt.plot(train_x, train_y_loss_neg, "+-", label='train_total')
+        plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
+        plt.savefig("./contrastive_loss_pic.png")
+
 
         plt.figure(figsize=(12,8))
         plt.subplot(2, 1, 1)
@@ -144,9 +174,13 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
     losses = []
     contras_losses = []
     gnlosses = []
+    pos_losses = []
+    neg_losses = []
     total_loss = 0
     total_contras_loss = 0
     total_gnloss = 0
+    total_loss_pos = 0
+    total_loss_neg = 0
 
     for batch_idx, (img_ab, corres_ab) in enumerate((train_loader)):
         corres_ab = corres_ab if len(corres_ab) > 0 else None
@@ -157,10 +191,10 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
             if corres_ab is not None:
                 # corres_ab = corres_ab.cuda()
                 # modified
-                # corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
+                corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
                 # modified by jzm
-                for c in corres_ab:
-                    c = {key: c[key].to(device) for key in c}
+                # for c in corres_ab:
+                #     c = {key: c[key].to(device) for key in c}
 
         optimizer.zero_grad()
         outputs = model(*img_ab)
@@ -176,19 +210,25 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
             corres_ab = (corres_ab,)
             loss_inputs += corres_ab
 
-        loss_outputs, contras_loss_outputs, gnloss_outputs = loss_fn(*loss_inputs)
+        loss_outputs, contras_loss_outputs, gnloss_outputs, loss_pos_outputs, loss_neg_outputs = loss_fn(*loss_inputs)
         loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
         contras_loss = contras_loss_outputs[0] if type(contras_loss_outputs) in (tuple, list) else contras_loss_outputs
         gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (tuple, list) else gnloss_outputs
+        loss_pos = loss_pos_outputs[0] if type(loss_pos_outputs) in (tuple, list) else loss_pos_outputs
+        loss_neg = loss_neg_outputs[0] if type(loss_neg_outputs) in (tuple, list) else loss_neg_outputs
 
         losses.append(loss.item())
         contras_losses.append(contras_loss.item())
         gnlosses.append(gnloss.item())
+        pos_losses.append(loss_pos.item())
+        neg_losses.append(loss_neg.item())
 
         total_loss += loss.item()
         total_contras_loss += contras_loss.item()
         total_gnloss += gnloss.item()
-        
+        total_loss_pos += loss_pos.item()
+        total_loss_neg += loss_neg.item()
+
         loss.backward()
         optimizer.step()
 
@@ -201,6 +241,8 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
             losses = []
             contras_losses = []
             gnlosses = []
+            pos_losses = []
+            neg_losses = []
 
         del img_ab
         del corres_ab
@@ -208,7 +250,9 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
     total_loss /= (batch_idx + 1)
     total_contras_loss /= (batch_idx + 1)
     total_gnloss /= (batch_idx + 1)
-    return total_loss, total_contras_loss, total_gnloss
+    total_loss_pos /= (batch_idx + 1)
+    total_loss_neg /= (batch_idx + 1)
+    return total_loss, total_contras_loss, total_gnloss, total_loss_pos, total_loss_neg
 
 
 def test_epoch(val_loader, model, loss_fn, cuda):
@@ -217,6 +261,8 @@ def test_epoch(val_loader, model, loss_fn, cuda):
         val_loss = 0
         val_contras_loss = 0
         val_gnloss = 0
+        val_loss_pos = 0
+        val_loss_neg = 0
         for batch_idx, (img_ab, corres_ab) in enumerate(val_loader):
             corres_ab = corres_ab if len(corres_ab) > 0 else None
             if not type(img_ab) in (tuple, list):
@@ -224,9 +270,9 @@ def test_epoch(val_loader, model, loss_fn, cuda):
             if cuda:
                 img_ab = tuple(d.to(device) for d in img_ab)
                 if corres_ab is not None:
-                    # corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
-                    for c in corres_ab:
-                        c = {key: c[key].to(device) for key in c}
+                    corres_ab = {key: corres_ab[key].to(device) for key in corres_ab}
+                    # for c in corres_ab:
+                    #     c = {key: c[key].to(device) for key in c}
 
             outputs = model(*img_ab)
 
@@ -237,16 +283,20 @@ def test_epoch(val_loader, model, loss_fn, cuda):
                 corres_ab = (corres_ab,)
                 loss_inputs += corres_ab
 
-            loss_outputs, contras_loss_outputs, gnloss_outputs = loss_fn(*loss_inputs)
+            loss_outputs, contras_loss_outputs, gnloss_outputs, loss_pos_outputs, loss_neg_outputs = loss_fn(*loss_inputs)
             loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
             contras_loss = contras_loss_outputs[0] if type(contras_loss_outputs) in (tuple, list) else contras_loss_outputs
             gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (tuple, list) else gnloss_outputs
+            loss_pos = loss_pos_outputs[0] if type(loss_pos_outputs) in (tuple, list) else loss_pos_outputs
+            loss_neg = loss_neg_outputs[0] if type(loss_neg_outputs) in (tuple, list) else loss_neg_outputs
             val_loss += loss.item()
             val_contras_loss += contras_loss.item()
             val_gnloss += gnloss.item()
+            val_loss_pos += loss_pos.item()
+            val_loss_neg += loss_neg.item()
 
 
             # for metric in metrics:
             #     metric(outputs, target, loss_outputs)
 
-    return val_loss, val_contras_loss, val_gnloss
+    return val_loss, val_contras_loss, val_gnloss, val_loss_pos, val_loss_neg
