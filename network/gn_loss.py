@@ -56,15 +56,17 @@ class GNLoss(nn.Module):
         # return torch.index_select(f_2d, -1, f_idx_2d)
 
 
-    def compute_contrastive_loss(self, fa, fb, N, pos):
-
+    def compute_contrastive_loss(self, fa, fb, pos):
+        N = fa.shape[0]
         diff = fa - fb
         D_feat = torch.norm(diff, p=2, dim=1)
         # length = len(D_feat[D_feat<1])
         if pos:
             return torch.sum(torch.pow(D_feat,2) / N)
         mdist = self.margin - D_feat
+        # modified for debugging, 5.16
         # length = len(D_feat[D_feat<self.margin])
+        # print(length, " ", torch.mean(D_feat[D_feat<self.margin]).item())
         mdist = torch.clamp(mdist, min=0.0)
         return torch.sum(torch.pow(mdist,2) / N)
 
@@ -182,9 +184,10 @@ class GNLoss(nn.Module):
             fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / (level*self.img_scale))
             '''compute contrastive loss'''
             # loss of positive pairs:
-            loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos, N, pos=True)
+            loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos,pos=True)
+            # loss_pos = 0 # modified for debugging, 5.16
             # loss of negative pairs:
-            loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, N, pos=False)
+            loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, pos=False)
 
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
