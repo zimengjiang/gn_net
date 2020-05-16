@@ -138,9 +138,6 @@ class GNLoss(nn.Module):
         return e
 
     def forward(self, F_a, F_b, known_matches):
-        for i in range(len(F_a)):
-            torch.save(F_a[i],"gn_f{}_ckp24.pt".format(i))
-
         '''
         F_a is a list containing 4 feature maps of different shapes
         1: B x C X H/8 x W/8
@@ -188,8 +185,8 @@ class GNLoss(nn.Module):
                 fb_sliced_pos = self.extract_features(F_b[i], positive_matches['b'] / (level * self.img_scale)) #(level*4))
             # fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) # don't //4 here. negative_matches are in the same scale as known_matches//4
             # fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level)
-            fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / (level*self.img_scale)) 
-            fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / (level*self.img_scale))
+            fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) #(level*self.img_scale)) img_scale is divided inside pair selector
+            fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level) #(level*self.img_scale))
             '''compute contrastive loss'''
             # loss of positive pairs:
             loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos,pos=True)
