@@ -78,6 +78,31 @@ def random_select_positive_matches(matches_in_1, matches_in_2, num_of_pairs=1024
 
     return matches_in_1_random_selected, matches_in_2_random_selected
 
+def random_select_negative_matches_whole_image(matches_in_1, matches_in_2, h=768, w=1024, num_of_pairs=1024):
+    if matches_in_1.shape[0] < num_of_pairs/2:
+        # for each image, choose half of the points
+        random_index1 = random.choices(range(0, matches_in_1.shape[0]), k=num_of_pairs//2)
+        random_index2 = random.choices(range(0, matches_in_2.shape[0]), k=num_of_pairs//2)
+    else:
+        random_index1 = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs//2)
+        random_index2 = random.sample(range(0, matches_in_2.shape[0]), num_of_pairs//2)
+    # select samples according to the random generated index
+    matches_in_1_random_selected_part1 = np.array([matches_in_1[index] for index in random_index1])
+    matches_in_2_random_selected_part1 = np.array([matches_in_2[index] for index in random_index2])
+
+    random_index1_part2_x = np.array(random.choices(range(0, w), k=num_of_pairs//2))
+    random_index1_part2_y = np.array(random.choices(range(0, h), k=num_of_pairs//2))
+    random_index2_part2_x = np.array(random.choices(range(0, w), k=num_of_pairs//2))
+    random_index2_part2_y = np.array(random.choices(range(0, h), k=num_of_pairs//2))
+
+    matches_in_1_random_selected_part2 = np.stack((random_index1_part2_x, random_index1_part2_y), axis=1)
+    matches_in_2_random_selected_part2 = np.stack((random_index2_part2_x, random_index2_part2_y), axis=1)
+
+    neg_match_in_1 = np.concatenate((matches_in_1_random_selected_part1, matches_in_1_random_selected_part2), axis=0)
+    neg_match_in_2 = np.concatenate((matches_in_2_random_selected_part1, matches_in_2_random_selected_part2), axis=0)
+
+    return neg_match_in_1, neg_match_in_2
+
 
 def random_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     # check the number of correspondences

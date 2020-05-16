@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 from glob import glob
-from corres_sampler import random_select_positive_matches, random_select_negative_matches
+from corres_sampler import random_select_positive_matches, random_select_negative_matches_whole_image
 import scipy.io
 import h5py  # for loading v7.3 .mat
 
@@ -124,13 +124,13 @@ class CMUDataset(Dataset):
         img_b = self._data['image_pairs_name']['b'][idx]
         a = self._data['corres_pos_all']['a'][idx].squeeze()
         b = self._data['corres_pos_all']['b'][idx].squeeze()
-        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
-        neg_a, neg_b = random_select_negative_matches(a, b, num_of_pairs=self._data['num_matches'])
-        corres_ab_pos = {'a': pos_a, 'b': pos_b}
-        corres_ab_neg = {'a':neg_a, 'b':neg_b}
         if self.transform:
             img_a = self.default_transform(Image.open(img_a))
             img_b = self.default_transform(Image.open(img_b))
+        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
+        neg_a, neg_b = random_select_negative_matches_whole_image(a, b, h=self._data['scale']*img_a.shape[1], w=self._data['scale']*img_a.shape[2] ,num_of_pairs=self._data['num_matches'])
+        corres_ab_pos = {'a': pos_a, 'b': pos_b}
+        corres_ab_neg = {'a':neg_a, 'b':neg_b}
         return (img_a, img_b), (corres_ab_pos,corres_ab_neg)
         # return (img_a, img_b), corres_ab_pos
 

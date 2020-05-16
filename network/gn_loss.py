@@ -135,55 +135,6 @@ class GNLoss(nn.Module):
         e = e1 + 2 * e2 / 7
         return e
 
-    def forward_old(self, F_a, F_b, known_matches):
-        '''
-        F_a is a list containing 4 feature maps of different shapes
-        1: B x C X H/8 x W/8
-        2: B x C X H/4 x W/4
-        3: B x C X H/2 x W/2
-        4: B x C X H x W
-
-        known_matches is the positive matches sampled by dataloader.
-        {'a':BxNx2,'b':BxNx2}
-
-        TODO: use for loop to check pair selector MyHardNegativePairSelector
-        '''
-        self.max_size_x = F_a[-1].shape[3]  # B x C x H x W
-        self.max_size_y = F_a[-1].shape[2]
-        '''get neg pairs, do it only for the finest feature'''
-        # slice features for positive matches
-        fa_4_sliced = self.extract_features(F_a[-1],
-                                            known_matches['a'] / self.img_scale)  # //4 if the input image is scaled
-        # fa_4_sliced_reshape = fa_4_sliced.reshape((B,N,C))
-        fb_4_sliced = self.extract_features(F_b[-1], known_matches['b'] / self.img_scale)  # //4
-        # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
-        # get hard negative samples
-        negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches, self.img_scale) #//.cuda 4 inside pair selector
-        '''compute loss for each scale'''
-        loss = 0
-        N = known_matches['a'].shape[1]  # the number of pos and neg matches
-        for i in range(len(F_a)):
-            level = np.power(2, 3 - i)
-            if (i == 3):
-                fa_sliced_pos = fa_4_sliced
-                fb_sliced_pos = fb_4_sliced
-            else:
-                fa_sliced_pos = self.extract_features(F_a[i], known_matches['a'] / (level * self.img_scale)) #(level*4)) #TODO: use bilinear interpolation in extract_features
-                fb_sliced_pos = self.extract_features(F_b[i], known_matches['b'] / (level * self.img_scale)) #(level*4))
-            fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) # don't //4 here. negative_matches are in the same scale as known_matches//4
-            fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level)
-            '''compute contrastive loss'''
-            # loss of positive pairs:
-            loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos, N, pos=True)
-            # loss of negative pairs:
-            loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, N, pos=False)
-
-            '''compute gn loss'''
-            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], known_matches['b'] / (level * self.img_scale))  # //4
-            loss = (loss_pos + loss_neg) + (self.lamda * loss_gn) + loss
-        print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
-        return loss
-    
     def forward(self, F_a, F_b, known_matches):
         for i in range(len(F_a)):
             torch.save(F_a[i],"gn_f{}_ckp24.pt".format(i))

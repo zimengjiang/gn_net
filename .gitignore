@@ -2,3 +2,8 @@ __pycache__/
 .vscode/
 *old.py
 *.pt
+*.txt
+corres_sampler_old.py
+*.png
+check.py
+test.py
