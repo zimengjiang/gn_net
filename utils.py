@@ -97,12 +97,30 @@ def pdist(vectors):
         dim=1).view(-1, 1)
     return distance_matrix
 
-def get_pdist(data1, data2):
+def get_pdist(data1, data2, requre_sqrt):
     # data1, data2: BxNx2
     diff = data1[:, :, None, :] - data2[:, None, :, :]
     pdist = torch.sum(diff * diff, axis=-1)
-    return torch.sqrt(pdist)
+    if requre_sqrt:
+        return torch.sqrt(pdist)
+    else:
+        return pdist
 
+def batch_pairwise_squared_distances(x, y):
+  '''                                                                                              
+  Modified from https://discuss.pytorch.org/t/efficient-distance-matrix-computation/9065/3         
+  Input: x is a bxNxd matrix y is an optional bxMxd matirx                                                             
+  Output: dist is a bxNxM matrix where dist[b,i,j] is the square norm between x[b,i,:] and y[b,j,:]
+  i.e. dist[i,j] = ||x[b,i,:]-y[b,j,:]||^2                                                         
+  '''                                               
+  x = x.to(torch.float32)  
+  y = y.to(torch.float32)                                             
+  x_norm = (x**2).sum(2).view(x.shape[0],x.shape[1],1)
+  y_t = y.permute(0,2,1).contiguous()
+  y_norm = (y**2).sum(2).view(y.shape[0],1,y.shape[1])
+  dist = x_norm + y_norm - 2.0 * torch.bmm(x, y_t)
+  dist[dist != dist] = 0 # replace nan values with 0
+  return torch.clamp(dist, 0.0, np.inf)
 
 def batched_eye_like(x, n):
     """Create a batch of identity matrices.
@@ -114,6 +132,20 @@ def batched_eye_like(x, n):
     """
     return torch.eye(n).to(x)[None].repeat(len(x), 1, 1)
 
+def extract_features(f, indices):
+    '''
+    f: BxCxHxW
+    indicies: BxNx2
+    '''
+    # B, C, H, W = f.shape
+    # N = indices.shape[1]
+    for b in range(f.shape[0]):
+        f_bth = bilinear_interpolation(f[b, :, :, :], indices[b, :, :])
+        if not b:
+            f_2d = f_bth
+        else:
+            f_2d = torch.cat((f_2d, f_bth), dim=1)
+    return f_2d.transpose(0, 1)
 
 def bilinear_interpolation(grid, idx):
     # grid: C x H x W
@@ -216,58 +248,67 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
     and return a negative index for that pair
     """
 
-    def __init__(self, margin, negative_selection_fn, cpu=True):
+    def __init__(self, margin):
         super(MyFunctionNegativeTripletSelector, self).__init__()
-        self.cpu = cpu
         self.margin = margin
-        self.negative_selection_fn = negative_selection_fn
+    def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold, device):
+        """
+        embedding1: feature map of image 1, BxCxHxW
+        embedding2: feature map of image 2, BxCxHxW
+        match_pos: known positive matches, {'a':BxNx2,'b':BxNx2}
+        topM: sort the negatives for each sample by loss in decreasing order and sample randomly over the top M
+        dist_threshold: minimal squared distance between anchor and neg
+        NOTE: for first trial, only sample on the finest scale
+        """
+        # maybe it is not necessary to de this
+        embedding1 = embedding1.to(device)
+        embedding2 = embedding2.to(device)
+        
+        a1 = match_pos['a'] / scale # anchors in img1
+        a2 = match_pos['b'] / scale # anchors in img2
+        B,C,H,W = embedding1.shape
+        N = a1.shape[1]
+        # slice anchor features
+        e1_sliced_ = extract_features(embedding1, a1) #(BxN)*C
+        e1_sliced = e1_sliced_.reshape((B, N, C)) # checked BxNXC
+        e2_sliced_ = extract_features(embedding2, a2)
+        # e2_sliced = e2_sliced.reshape((B, N, C)) # checked
+        # reshape embeddings to (B,H*W,C)
+        # e1 = embedding1.reshape((B,C,-1)) # checked
+        # e1 = e1.transpose(1,2) # checked
+        e2 = embedding2.reshape((B,C,-1)) # checked
+        e2 = e2.transpose(1,2) # checked
+        # feature distance matrix from anchor1 to image 2
+        f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
+        # feature distance matrix from anchor2 to image 1
+        # f_dist_a2_img1 = batch_pairwise_squared_distances(e2_sliced,e1) # dim: B x #a2 x #pixels in img1
+        # get topM hardest samples, might loose it to semi hardest
+        dist_nn12, idx_in_2 = f_dist_a1_img2.topk(topM, dim=-1, largest=False)
+        # dist_nn21, idx_in_1 = f_dist_a2_img1.topk(topM, dim=-1, largest=False)
+        ### compute pixel distance
+        y_in_2 = idx_in_2 // W # row idx , idx = y*W + x
+        x_in_2 = idx_in_2 % W # col idx
+        xy_in_2 = torch.stack((x_in_2, y_in_2),dim=-1)
+        # y_in_1 = idx_in_1 // W # row idx , idx = y*W + x
+        # x_in_1 = idx_in_1 % W # col idx
+        # xy_in_1 = torch.stack((x_in_1, y_in_1),dim=-1)
+        # a1_rep = a1.repeat(1,1,1,topM)
+        # a1_rep = a1_rep.reshape(B,N,topM,2)
+        a2_rep = a2.repeat(1,1,1,topM)
+        a2_rep = a2_rep.reshape(B,N,topM,2)
 
-    def get_triplets(self, embeddings, labels):
-        if self.cpu:
-            embeddings = embeddings.cpu()
+        p_dist_in_2 = torch.norm(a2_rep-xy_in_2, p=2, dim=-1)
+        # p_dist_in_1 = torch.norm(a1_rep-xy_in_1, p=2, dim=-1)
+        mask_in_2 = p_dist_in_2 > dist_threshold
+        # mask_in_1 = p_dist_in_1 > dist_threshold
+        dist_nn12_ok = mask_in_2 * dist_nn12 # B x (N: #anchors in 1) x topM
+        # dist_nn21_ok = mask_in_1 * dist_nn21 # B x (N: #anchors in 2) x topM
 
-        distance_matrix = pdist(embeddings)
-        distance_matrix = distance_matrix.cpu()
-
-        labels = labels.cpu().data.numpy()
-        triplets = []
-
-        for label in set(labels):
-            label_mask = (labels == label)
-            label_indices = np.where(label_mask)[0]
-            if len(label_indices) < 2:
-                continue
-            negative_indices = np.where(np.logical_not(label_mask))[0]
-            anchor_positives = list(combinations(label_indices, 2))  # All anchor-positive pairs
-            anchor_positives = np.array(anchor_positives)
-
-            ap_distances = distance_matrix[anchor_positives[:, 0], anchor_positives[:, 1]]
-            for anchor_positive, ap_distance in zip(anchor_positives, ap_distances):
-                loss_values = ap_distance - distance_matrix[torch.LongTensor(np.array([anchor_positive[0]])), torch.LongTensor(negative_indices)] + self.margin
-                loss_values = loss_values.data.cpu().numpy()
-                hard_negative = self.negative_selection_fn(loss_values)
-                if hard_negative is not None:
-                    hard_negative = negative_indices[hard_negative]
-                    triplets.append([anchor_positive[0], anchor_positive[1], hard_negative])
-
-        if len(triplets) == 0:
-            triplets.append([anchor_positive[0], anchor_positive[1], negative_indices[0]])
-
-        triplets = np.array(triplets)
-
-        return torch.LongTensor(triplets)
-
-
-def HardestNegativeTripletSelector(margin, cpu=False): return MyFunctionNegativeTripletSelector(margin=margin,
-                                                                                 negative_selection_fn=hardest_negative,
-                                                                                 cpu=cpu)
-
-
-def RandomNegativeTripletSelector(margin, cpu=False): return MyFunctionNegativeTripletSelector(margin=margin,
-                                                                                negative_selection_fn=random_hard_negative,
-                                                                                cpu=cpu)
-
-
-def SemihardNegativeTripletSelector(margin, cpu=False): return MyFunctionNegativeTripletSelector(margin=margin,
-                                                                                  negative_selection_fn=lambda x: semihard_negative(x, margin),
-                                                                                  cpu=cpu)
+        dist_nn12_ok = dist_nn12_ok.reshape(B*N,-1)
+        # dist_nn21_ok = dist_nn21_ok.reshape(B*N,-1)
+        "not sure /topM"
+        loss_neg = dist_nn12_ok.sum(-1)/topM  
+        loss_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
+        mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
+        # print(len(mdist[mdist>0]))
+        return torch.sum(mdist)

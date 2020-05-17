@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 from enum import Enum
-from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
+from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient, MyFunctionNegativeTripletSelector, extract_features
 
 
 cuda = torch.cuda.is_available()
@@ -17,7 +17,6 @@ class TripletDistanceMetric(Enum):
     EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
     MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
 
-# TODO: resize the image and corresponding matches
 
 class GNLoss(nn.Module):
     '''
@@ -27,43 +26,25 @@ class GNLoss(nn.Module):
     def __init__(self, margin=1.0, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2):
         super(GNLoss, self).__init__()
         self.margin = margin
-        self.pair_selector = MyHardNegativePairSelector()
+        # self.pair_selector = MyHardNegativePairSelector()
+        self.pair_selector = MyFunctionNegativeTripletSelector(margin=1)
         self.gn_lamda = gn_lamda
         self.contrastive_lamda = contrastive_lamda
         self.img_scale = img_scale  # original colored image is scaled by a factor img_scale.
-
-    def extract_features(self, f, indices):
-        '''
-        f: BxCxHxW
-        indicies: BxNx2
-        '''
-        B, C, H, W = f.shape
-        N = indices.shape[1]
-        for b in range(f.shape[0]):
-            f_bth = bilinear_interpolation(f[b, :, :, :], indices[b, :, :])
-            if not b:
-                f_2d = f_bth
-            else:
-                f_2d = torch.cat((f_2d, f_bth), dim=1)
-        return f_2d.transpose(0, 1)
-
-        # N = indices.shape[1]
-        # b, c, h, w = f.shape
-        # f_permuted = f.permute(1,0,2,3)
-        # f_2d = f_permuted.reshape((c, b*h*w))
-        # f_idx_2d = np.zeros((b*N)) # for cpu debugging
-        # # modified
-        # # f_idx_2d_cuda_tensor = torch.zeros((b*N)).cuda()
-        # for b_th in range(b):
-        #     m = indices[b_th]
-        #     f_idx_2d[b_th*(N):(b_th+1)*N] = b_th*w*h + m[:,1]*w + m[:,0]
-        #     # modified
-        #     # f_idx_2d_cuda_tensor[b_th*(N):(b_th+1)*N] = b_th*w*h + m[:,1]*w + m[:,0]
-        #     # f_idx_2d = f_idx_2d_cuda_tensor.cpu().numpy()
-        # f_idx_2d = torch.floor(torch.from_numpy(f_idx_2d)).type(torch.LongTensor).to(f_2d.device)
-
-        # return torch.index_select(f_2d, -1, f_idx_2d).transpose(0,1)
-        # return torch.index_select(f_2d, -1, f_idx_2d)
+    # def extract_features(self, f, indices):
+    #     '''
+    #     f: BxCxHxW
+    #     indicies: BxNx2
+    #     '''
+    #     # B, C, H, W = f.shape
+    #     # N = indices.shape[1]
+    #     for b in range(f.shape[0]):
+    #         f_bth = bilinear_interpolation(f[b, :, :, :], indices[b, :, :])
+    #         if not b:
+    #             f_2d = f_bth
+    #         else:
+    #             f_2d = torch.cat((f_2d, f_bth), dim=1)
+    #     return f_2d.transpose(0, 1)
 
 
     def compute_triplet_loss_torch(self, fa, fp, fn):
@@ -132,15 +113,15 @@ class GNLoss(nn.Module):
         xs = torch.FloatTensor(ub.shape).normal_(0).to(device) + ub.to(device)
         # xs = torch.rand(ub.shape).to(device) + ub.to(device)
         # torch.clamp(min=0, max = self.max_size[1], xs[:]) # self.max_size: H x W
-        f_s = self.extract_features(fb, xs)
+        f_s = extract_features(fb, xs)
         # compute residual
         r = f_s - f_t
         # compute Jacobian
 
         # modified
         f_s_gx, f_s_gy = torch_gradient(fb)  
-        J_xs_x = self.extract_features(f_s_gx, xs)
-        J_xs_y = self.extract_features(f_s_gy, xs)
+        J_xs_x = extract_features(f_s_gx, xs)
+        J_xs_y = extract_features(f_s_gy, xs)
 
         # f_s_gy, f_s_gx = np.gradient(fb.cpu().detach().numpy(), axis=(2, 3)) # numerical derivative: J = d(fb)/d(xs), feature gradients # to check if it is correct
         # J_xs_x = self.extract_features(torch.from_numpy(f_s_gx), xs)#.cuda()
@@ -187,13 +168,13 @@ class GNLoss(nn.Module):
         self.max_size_y = F_a[-1].shape[2]
         '''get neg pairs, do it only for the finest feature'''
         # slice features for positive matches
-        fa_4_sliced = self.extract_features(F_a[-1],
-                                            positive_matches['a'] / self.img_scale)  # //4 if the input image is scaled
+        # fa_4_sliced = extract_features(F_a[-1],
+                                            # positive_matches['a'] / self.img_scale)  # //4 if the input image is scaled
         # fa_4_sliced_reshape = fa_4_sliced.reshape((B,N,C))
-        fb_4_sliced = self.extract_features(F_b[-1], positive_matches['b'] / self.img_scale)  # //4
+        # fb_4_sliced = extract_features(F_b[-1], positive_matches['b'] / self.img_scale)  # //4
         # fb_4_sliced_reshape = fb_4_sliced.reshape((B,N,C))
         # get hard negative samples
-        negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches, self.img_scale) #//.cuda 4 inside pair selector
+        # negative_matches = self.pair_selector.get_pairs(fa_4_sliced, fb_4_sliced, known_matches, self.img_scale) #//.cuda 4 inside pair selector
         
         '''compute loss for each scale'''
         loss = 0
@@ -203,16 +184,16 @@ class GNLoss(nn.Module):
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
             level = np.power(2, 3 - i)
-            if (i == 3):
-                fa_sliced_pos = fa_4_sliced
-                fb_sliced_pos = fb_4_sliced
-            else:
-                fa_sliced_pos = self.extract_features(F_a[i], positive_matches['a'] / (level * self.img_scale)) #(level*4)) #TODO: use bilinear interpolation in extract_features
-                fb_sliced_pos = self.extract_features(F_b[i], positive_matches['b'] / (level * self.img_scale)) #(level*4))
+            # if (i == 3):
+            #     fa_sliced_pos = fa_4_sliced
+            #     fb_sliced_pos = fb_4_sliced
+            # else:
+            fa_sliced_pos = extract_features(F_a[i], positive_matches['a'] / (level * self.img_scale)) #(level*4)) #TODO: use bilinear interpolation in extract_features
+            # fb_sliced_pos = extract_features(F_b[i], positive_matches['b'] / (level * self.img_scale)) #(level*4))
             # fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) # don't //4 here. negative_matches are in the same scale as known_matches//4
             # fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level)
-            fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) #(level*self.img_scale)) img_scale is divided inside pair selector
-            fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level) #(level*self.img_scale))
+            # fa_sliced_neg = extract_features(F_a[i], negative_matches['a'] / level) #(level*self.img_scale)) img_scale is divided inside pair selector
+            # fb_sliced_neg = extract_features(F_b[i], negative_matches['b'] / level) #(level*self.img_scale))
             
             '''compute contrastive loss'''
             # loss of positive pairs:
@@ -222,8 +203,10 @@ class GNLoss(nn.Module):
             # loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, pos=False)
 
             '''compute triplet loss'''
-            loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
-
+            # loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
+            #TODO：topM=max(5,e(-...))
+            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = 30, dist_threshold=20, device=device)
+            
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
             
