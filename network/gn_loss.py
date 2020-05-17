@@ -1,11 +1,21 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import torch.nn.functional as F
+from enum import Enum
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient
+
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 
+class TripletDistanceMetric(Enum):
+    """
+    The metric for the triplet loss
+    """
+    COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
+    EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
+    MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
 
 # TODO: resize the image and corresponding matches
 
@@ -54,6 +64,23 @@ class GNLoss(nn.Module):
 
         # return torch.index_select(f_2d, -1, f_idx_2d).transpose(0,1)
         # return torch.index_select(f_2d, -1, f_idx_2d)
+
+
+    def compute_triplet_loss_torch(self, fa, fp, fn):
+        triplet_loss = nn.TripletMarginLoss(margin=self.margin, p=2)
+        anchor = fa
+        positive = fp
+        negative = fn
+        output = triplet_loss(anchor, positive, negative)
+        return output
+
+
+    def compute_triplet_loss(self, fa, fp, fn):
+        distance_metric=TripletDistanceMetric.EUCLIDEAN
+        distance_pos = distance_metric(fa, fp)
+        distance_neg = distance_metric(fa, fn)
+        losses = F.relu(distance_pos - distance_neg + self.margin)
+        return losses.mean()
 
 
     def compute_contrastive_loss(self, fa, fb, pos):
@@ -170,10 +197,9 @@ class GNLoss(nn.Module):
         
         '''compute loss for each scale'''
         loss = 0
-        contras_loss = 0
+        tripletloss = 0
         gnloss = 0
-        pos_loss = 0
-        neg_loss = 0
+
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
             level = np.power(2, 3 - i)
@@ -187,19 +213,27 @@ class GNLoss(nn.Module):
             # fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level)
             fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) #(level*self.img_scale)) img_scale is divided inside pair selector
             fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level) #(level*self.img_scale))
+            
             '''compute contrastive loss'''
             # loss of positive pairs:
-            loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos,pos=True)
+            # loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos,pos=True)
             # loss_pos = 0 # modified for debugging, 5.16
             # loss of negative pairs:
-            loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, pos=False)
+            # loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, pos=False)
+
+            '''compute triplet loss'''
+            loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
 
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
-            loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
-            contras_loss = self.contrastive_lamda*(loss_pos + loss_neg) + contras_loss
+            
+            # loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
+            loss = self.contrastive_lamda*loss_triplet + (self.gn_lamda * loss_gn) + loss 
+            # contras_loss = self.contrastive_lamda*(loss_pos + loss_neg) + contras_loss
             gnloss = (self.gn_lamda * loss_gn) + gnloss
-            pos_loss = self.contrastive_lamda*loss_pos + pos_loss
-            neg_loss = self.contrastive_lamda*loss_neg + neg_loss
+            tripletloss = (self.contrastive_lamda * loss_triplet) + tripletloss
+
+            # pos_loss = self.contrastive_lamda*loss_pos + pos_loss
+            # neg_loss = self.contrastive_lamda*loss_neg + neg_loss
         # print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
-        return loss, contras_loss, gnloss, pos_loss, neg_loss
+        return loss, tripletloss, gnloss

@@ -10,10 +10,10 @@ from glob import glob
 # import wandb
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--dataset_root', type=str, default='/local/home/lixxue/gnnet/gn_net_data')
+parser.add_argument('--dataset_root', type=str, default='/local/home/lixxue/gnnet/gn_net_data_tiny')
 parser.add_argument('--dataset_name', type=str, default='cmu')
 parser.add_argument('--dataset_image_folder', type=str, default='images')
-parser.add_argument('--pair_info_folder', type=str, default='correspondence_data')
+parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
 parser.add_argument('--all_slice', type=bool, default=True)
 parser.add_argument('--slice', type=int, default=6)
@@ -29,9 +29,9 @@ parser.add_argument('--lr', type = float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency', type=int, default=20, help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale', type=int, default = 2, help="Scaling factor for input image")
-parser.add_argument('--save_root', type=str, default = '/local/home/lixxue/gnnet/gn_net_data')
-parser.add_argument('--gn_loss_lamda', type=float, default=0)
-parser.add_argument('--contrastive_lamda', type=float, default=1000)
+parser.add_argument('--save_root', type=str, default = '/local/home/lixxue/gnnet/checkpoint')
+parser.add_argument('--gn_loss_lamda', type=float, default=0.002)
+parser.add_argument('--contrastive_lamda', type=float, default=100)
 parser.add_argument('--weight_decay', type=float, default=0.001)
 parser.add_argument('--num_matches', type=float, default=1000)
 parser.add_argument('--resume_checkpoint', type=str, default=None)
@@ -105,7 +105,6 @@ model = GNNet(embedding_net)
 model = model.to(device)
 if (args.resume_checkpoint):     
     model.load_state_dict(torch.load(args.resume_checkpoint,map_location=torch.device(device)))
-
 
 # set up loss
 margin = 1.
