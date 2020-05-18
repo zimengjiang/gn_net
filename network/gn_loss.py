@@ -204,9 +204,8 @@ class GNLoss(nn.Module):
 
             '''compute triplet loss'''
             # loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
-            #TODO：topM=max(5,e(-...))
             topM = np.clip(64*np.exp(-epoch*0.6/1000), a_min = 5, a_max=None)
-            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=60/level)
+            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=400/level)
             
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4

@@ -265,7 +265,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         embedding2: feature map of image 2, BxCxHxW
         match_pos: known positive matches, {'a':BxNx2,'b':BxNx2}
         topM: sort the negatives for each sample by loss in decreasing order and sample randomly over the top M
-        dist_threshold: minimal distance between anchor and neg
+        dist_threshold: minimal sqaured distance between anchor and neg
         """
         # not necessary 
         # embedding1 = embedding1.to(device)
@@ -290,24 +290,33 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # feature distance matrix from anchor2 to image 1
         # f_dist_a2_img1 = batch_pairwise_squared_distances(e2_sliced,e1) # dim: B x #a2 x #pixels in img1
         # get topM hardest samples, might loose it to semi hardest
+        idx_1d = torch.arange(H*W)
+        idx_x = idx_1d % W 
+        idx_y = idx_1d // W
+        idx_xy = torch.stack((idx_x,idx_y),dim=1)
+        idx_batched_xy = idx_xy.repeat(B,1,1)
+        p_dist_12 = batch_pairwise_squared_distances(a1, idx_batched_xy)
+        mask_12 = p_dist_12 < dist_threshold
+        f_dist_a1_img2[mask_12] = 1e3
+
         dist_nn12, idx_in_2 = f_dist_a1_img2.topk(topM, dim=-1, largest=False)
         # dist_nn21, idx_in_1 = f_dist_a2_img1.topk(topM, dim=-1, largest=False)
         ### compute pixel distance
-        y_in_2 = idx_in_2 // W # row idx , idx = y*W + x
-        x_in_2 = idx_in_2 % W # col idx
-        xy_in_2 = torch.stack((x_in_2, y_in_2),dim=-1)
+        # y_in_2 = idx_in_2 // W # row idx , idx = y*W + x
+        # x_in_2 = idx_in_2 % W # col idx
+        # xy_in_2 = torch.stack((x_in_2, y_in_2),dim=-1)
         # y_in_1 = idx_in_1 // W # row idx , idx = y*W + x
         # x_in_1 = idx_in_1 % W # col idx
         # xy_in_1 = torch.stack((x_in_1, y_in_1),dim=-1)
         # a1_rep = a1.repeat(1,1,1,topM)
         # a1_rep = a1_rep.reshape(B,N,topM,2)
-        a2_rep = a2.repeat(1,1,1,topM)
-        a2_rep = a2_rep.reshape(B,N,topM,2)
+        # a2_rep = a2.repeat(1,1,1,topM)
+        # a2_rep = a2_rep.reshape(B,N,topM,2)
 
-        p_dist_in_2 = torch.norm(a2_rep-xy_in_2, p=2, dim=-1)
+        # p_dist_in_2 = torch.norm(a2_rep-xy_in_2, p=2, dim=-1)
         # print(dist_nn12)
         # p_dist_in_1 = torch.norm(a1_rep-xy_in_1, p=2, dim=-1)
-        mask_in_2 = p_dist_in_2 > dist_threshold
+        # mask_in_2 = p_dist_in_2 > dist_threshold
         # mask_in_1 = p_dist_in_1 > dist_threshold
         # dist_nn12_ok = mask_in_2 * dist_nn12 # B x (N: #anchors in 1) x topM
         # dist_nn12_ok_sort = dist_nn12_ok.topk(topM, dim=-1, largest=)
@@ -315,10 +324,10 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # dist_nn21_ok = mask_in_1 * dist_nn21 # B x (N: #anchors in 2) x topM
         
         # dist_nn12_ok = dist_nn12_ok.reshape(B*N,-1)
-        dist_nn12[mask_in_2]=float('inf')
+        # dist_nn12[mask_in_2]=float('inf')
         dist_nn12 = dist_nn12.reshape(B*N, -1)
 
-        # loss_neg = dist_nn12_ok[torch.arange(B*N),torch.randint(0,topM,(B*N,))]
+        loss_neg = dist_nn12[torch.arange(B*N),torch.randint(0,topM,(B*N,))]
         # dist_nn21_ok = dist_nn21_ok.reshape(B*N,-1)
         "not sure /topM"
         # loss_neg = dist_nn12_ok.sum(-1)/topM  # ?
@@ -326,10 +335,9 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # print(loss_neg)
         # loss_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
         loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
-        loss_pos = loss_pos.reshape(B*N,1)
-        mdist = torch.clamp(loss_pos-dist_nn12+self.margin, min=0.0)
-        tmp = torch.mean(mdist, dim=1)
+        mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
+        # tmp = torch.mean(mdist, dim=1)
         # print(loss_pos)
         # mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
         # print(len(mdist[mdist>0]))
-        return torch.sum(tmp)
+        return torch.sum(mdist)
