@@ -145,7 +145,7 @@ class GNLoss(nn.Module):
         e = e1 + 2 * e2 / 7
         return e
 
-    def forward(self, F_a, F_b, known_matches):
+    def forward(self, F_a, F_b, known_matches, epoch):
         '''
         F_a is a list containing 4 feature maps of different shapes
         1: B x C X H/8 x W/8
@@ -205,11 +205,11 @@ class GNLoss(nn.Module):
             '''compute triplet loss'''
             # loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
             #TODO：topM=max(5,e(-...))
-            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = 30, dist_threshold=20, device=device)
+            topM = np.clip(64*np.exp(-epoch*0.6/1000), a_min = 5, a_max=None)
+            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=60/level)
             
             '''compute gn loss'''
             loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
-            
             # loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
             loss = self.contrastive_lamda*loss_triplet + (self.gn_lamda * loss_gn) + loss 
             # contras_loss = self.contrastive_lamda*(loss_pos + loss_neg) + contras_loss

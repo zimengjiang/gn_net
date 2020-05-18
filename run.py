@@ -38,6 +38,8 @@ parser.add_argument('--resume_checkpoint', type=str, default=None)
 parser.add_argument('--nearest', type=bool, default=True, help="upsampling mode")
 parser.add_argument('--bilinear', type=bool, default=False, help="upsampling mode")
 parser.add_argument('--margin', type=float, default=1, help="triplet loss margin")
+parser.add_argument('--validate', type=bool, default=True, help="validate during training or not")
+
 
 args = parser.parse_args()
 # wandb.init(config=args)
@@ -91,7 +93,11 @@ torch.manual_seed(0)
 # number of trainset and number of valset should sum up to len(dataset)
 trainset, valset = torch.utils.data.random_split(dataset, [num_trainset, num_valset])
 train_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-val_loader = DataLoader(valset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+# modified 5.18 for debugging
+if args.validate:
+    val_loader = DataLoader(valset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+else:
+    val_loader = None
 
 '''set up the network and training parameters'''
 from network.gnnet_model import EmbeddingNet, GNNet

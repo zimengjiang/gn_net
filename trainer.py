@@ -52,7 +52,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         '''
 
         # Train stage
-        train_loss, total_contras_loss, total_gnloss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init=False)
+        train_loss, total_contras_loss, total_gnloss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init=False)
         train_x.append(epoch + 1)
         train_y.append(train_loss)
         train_y_contras.append(total_contras_loss)
@@ -149,11 +149,12 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
         # plt.savefig("./gn_loss_pic.png")
         plt.savefig("./train_val_loss_pic.png")
+        plt.close()
 
 
 
 
-def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, init):
+def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init):
     # initialize network parameters, oscillates a lot here. not good
     if init:
         for m in model.modules():
@@ -201,7 +202,9 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
         if corres_ab is not None:
             corres_ab = (corres_ab,)
             loss_inputs += corres_ab
-
+        # modified for triplet loss negative part
+        loss_inputs += (epoch,)
+        
         loss_outputs, contras_loss_outputs, gnloss_outputs = loss_fn(*loss_inputs)
         loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
         contras_loss = contras_loss_outputs[0] if type(contras_loss_outputs) in (tuple, list) else contras_loss_outputs

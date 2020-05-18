@@ -259,18 +259,17 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
     def __init__(self, margin):
         super(MyFunctionNegativeTripletSelector, self).__init__()
         self.margin = margin
-    def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold, device):
+    def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold):
         """
         embedding1: feature map of image 1, BxCxHxW
         embedding2: feature map of image 2, BxCxHxW
         match_pos: known positive matches, {'a':BxNx2,'b':BxNx2}
         topM: sort the negatives for each sample by loss in decreasing order and sample randomly over the top M
-        dist_threshold: minimal squared distance between anchor and neg
-        NOTE: for first trial, only sample on the finest scale
+        dist_threshold: minimal distance between anchor and neg
         """
-        # maybe it is not necessary to de this
-        embedding1 = embedding1.to(device)
-        embedding2 = embedding2.to(device)
+        # not necessary 
+        # embedding1 = embedding1.to(device)
+        # embedding2 = embedding2.to(device)
         
         a1 = match_pos['a'] / scale # anchors in img1
         a2 = match_pos['b'] / scale # anchors in img2
@@ -310,18 +309,27 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # p_dist_in_1 = torch.norm(a1_rep-xy_in_1, p=2, dim=-1)
         mask_in_2 = p_dist_in_2 > dist_threshold
         # mask_in_1 = p_dist_in_1 > dist_threshold
-        dist_nn12_ok = mask_in_2 * dist_nn12 # B x (N: #anchors in 1) x topM
+        # dist_nn12_ok = mask_in_2 * dist_nn12 # B x (N: #anchors in 1) x topM
+        # dist_nn12_ok_sort = dist_nn12_ok.topk(topM, dim=-1, largest=)
         # print(dist_nn12_ok)
         # dist_nn21_ok = mask_in_1 * dist_nn21 # B x (N: #anchors in 2) x topM
         
-        dist_nn12_ok = dist_nn12_ok.reshape(B*N,-1)
+        # dist_nn12_ok = dist_nn12_ok.reshape(B*N,-1)
+        dist_nn12[mask_in_2]=float('inf')
+        dist_nn12 = dist_nn12.reshape(B*N, -1)
+
+        # loss_neg = dist_nn12_ok[torch.arange(B*N),torch.randint(0,topM,(B*N,))]
         # dist_nn21_ok = dist_nn21_ok.reshape(B*N,-1)
         "not sure /topM"
-        loss_neg = dist_nn12_ok.sum(-1)/topM  # ?
+        # loss_neg = dist_nn12_ok.sum(-1)/topM  # ?
+        # loss_neg = dist_nn12_ok.sum(-1)
         # print(loss_neg)
         # loss_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
         loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
+        loss_pos = loss_pos.reshape(B*N,1)
+        mdist = torch.clamp(loss_pos-dist_nn12+self.margin, min=0.0)
+        tmp = torch.mean(mdist, dim=1)
         # print(loss_pos)
-        mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
+        # mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
         # print(len(mdist[mdist>0]))
-        return torch.mean(mdist)
+        return torch.sum(tmp)
