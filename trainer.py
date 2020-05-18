@@ -132,7 +132,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         # plt.savefig("./train_val_loss_pic.png")
 
         plt.subplot(2, 2, 3)
-        plt.title("contrastive_loss")
+        plt.title("triplet_loss")
         # plt.xlabel("epoch")
         # plt.ylabel("loss_value")
         plt.plot(val_x, val_y_contras, "-s", label='val_contrastive')

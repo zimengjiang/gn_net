@@ -23,11 +23,11 @@ class GNLoss(nn.Module):
     GN loss function.
     '''
 
-    def __init__(self, margin=1.0, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2):
+    def __init__(self, margin=1, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2):
         super(GNLoss, self).__init__()
         self.margin = margin
         # self.pair_selector = MyHardNegativePairSelector()
-        self.pair_selector = MyFunctionNegativeTripletSelector(margin=1)
+        self.pair_selector = MyFunctionNegativeTripletSelector(margin=self.margin)
         self.gn_lamda = gn_lamda
         self.contrastive_lamda = contrastive_lamda
         self.img_scale = img_scale  # original colored image is scaled by a factor img_scale.

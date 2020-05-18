@@ -16,28 +16,28 @@ parser.add_argument('--dataset_image_folder', type=str, default='images')
 parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
 parser.add_argument('--all_slice', type=bool, default=True)
-parser.add_argument('--slice', type=int, default=6)
+parser.add_argument('--slice', type=int, default=10)
 parser.add_argument('--transform', type=bool, default=True)
 parser.add_argument('--start_epoch', type=int, default=0)
 parser.add_argument('--total_epochs', type=int, default=50)
-parser.add_argument('--log_interval', type=int, default=160)
+parser.add_argument('--log_interval', type=int, default=10)
 parser.add_argument('--validation_frequency', type=int, default=1)
 parser.add_argument('--init', type=bool, default=True, help="Initialize the network weights")
-parser.add_argument('--batch_size', '-b', type=int, default=2, help="Batch size")
+parser.add_argument('--batch_size', '-b', type=int, default=1, help="Batch size")
 parser.add_argument('--num_workers', '-n', type=int, default=16, help="Number of workers")
 parser.add_argument('--lr', type = float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency', type=int, default=20, help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale', type=int, default = 2, help="Scaling factor for input image")
 parser.add_argument('--save_root', type=str, default = '/local/home/lixxue/gnnet/checkpoint')
-parser.add_argument('--gn_loss_lamda', type=float, default=0.002)
-parser.add_argument('--contrastive_lamda', type=float, default=100)
+parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
+parser.add_argument('--contrastive_lamda', type=float, default=1)
 parser.add_argument('--weight_decay', type=float, default=0.001)
-parser.add_argument('--num_matches', type=float, default=1000)
+parser.add_argument('--num_matches', type=float, default=1024)
 parser.add_argument('--resume_checkpoint', type=str, default=None)
 parser.add_argument('--nearest', type=bool, default=True, help="upsampling mode")
 parser.add_argument('--bilinear', type=bool, default=False, help="upsampling mode")
-
+parser.add_argument('--margin', type=float, default=1, help="triplet loss margin")
 
 args = parser.parse_args()
 # wandb.init(config=args)
@@ -58,7 +58,7 @@ if not len(pair_files1):
     raise Exception('No correspondence file found at {}'.format(pair_file_roots1))
 
 num_dataset = len(pair_files1)
-num_valset = round(0.1 * num_dataset)
+num_valset = round(0 * num_dataset)
 num_trainset = num_dataset - num_valset
 print('\nnum_dataset: {} '.format(num_dataset))
 print('num_trainset: {} '.format(num_trainset))
@@ -107,9 +107,9 @@ if (args.resume_checkpoint):
     model.load_state_dict(torch.load(args.resume_checkpoint,map_location=torch.device(device)))
 
 # set up loss
-margin = 1.
-loss_fn = GNLoss(margin=1, contrastive_lamda=args.contrastive_lamda, gn_lamda=args.gn_loss_lamda, img_scale=args.scale)
+loss_fn = GNLoss(margin=args.margin, contrastive_lamda=args.contrastive_lamda, gn_lamda=args.gn_loss_lamda, img_scale=args.scale)
 optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+# optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
 scheduler = optim.lr_scheduler.StepLR(optimizer, args.schedule_lr_frequency, gamma=args.schedule_lr_fraction,
                                       last_epoch=-1)  # optional
 n_epochs = args.total_epochs

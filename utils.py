@@ -1,4 +1,5 @@
 from itertools import combinations
+from enum import Enum
 import shutil, os
 import numpy as np
 import torch
@@ -239,6 +240,13 @@ def semihard_negative(loss_values, margin):
     semihard_negatives = np.where(np.logical_and(loss_values < margin, loss_values > 0))[0]
     return np.random.choice(semihard_negatives) if len(semihard_negatives) > 0 else None
 
+class TripletDistanceMetric(Enum):
+    """
+    The metric for the triplet loss
+    """
+    COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
+    EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
+    MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
 
 class MyFunctionNegativeTripletSelector(TripletSelector):
     """
@@ -270,7 +278,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         N = a1.shape[1]
         # slice anchor features
         e1_sliced_ = extract_features(embedding1, a1) #(BxN)*C
-        e1_sliced = e1_sliced_.reshape((B, N, C)) # checked BxNXC
+        e1_sliced = e1_sliced_.reshape((B, N, C)) # checked BxNxC
         e2_sliced_ = extract_features(embedding2, a2)
         # e2_sliced = e2_sliced.reshape((B, N, C)) # checked
         # reshape embeddings to (B,H*W,C)
@@ -298,17 +306,22 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         a2_rep = a2_rep.reshape(B,N,topM,2)
 
         p_dist_in_2 = torch.norm(a2_rep-xy_in_2, p=2, dim=-1)
+        # print(dist_nn12)
         # p_dist_in_1 = torch.norm(a1_rep-xy_in_1, p=2, dim=-1)
         mask_in_2 = p_dist_in_2 > dist_threshold
         # mask_in_1 = p_dist_in_1 > dist_threshold
         dist_nn12_ok = mask_in_2 * dist_nn12 # B x (N: #anchors in 1) x topM
+        # print(dist_nn12_ok)
         # dist_nn21_ok = mask_in_1 * dist_nn21 # B x (N: #anchors in 2) x topM
-
+        
         dist_nn12_ok = dist_nn12_ok.reshape(B*N,-1)
         # dist_nn21_ok = dist_nn21_ok.reshape(B*N,-1)
         "not sure /topM"
-        loss_neg = dist_nn12_ok.sum(-1)/topM  
-        loss_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
+        loss_neg = dist_nn12_ok.sum(-1)/topM  # ?
+        # print(loss_neg)
+        # loss_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
+        loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
+        # print(loss_pos)
         mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
         # print(len(mdist[mdist>0]))
-        return torch.sum(mdist)
+        return torch.mean(mdist)
