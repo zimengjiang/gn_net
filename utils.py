@@ -132,17 +132,15 @@ def batch_pairwise_cos_distances(x, y):
   '''                                               
   x = x.to(torch.float32)  
   y = y.to(torch.float32)                                             
-#   x_norm = (x**2).sum(2).view(x.shape[0],x.shape[1],1) # squared norm
   x_norm = torch.sqrt((x**2).sum(2).view(x.shape[0],x.shape[1],1))
   y_t = y.permute(0,2,1).contiguous()
-#   y_norm = (y**2).sum(2).view(y.shape[0],1,y.shape[1]) # squared norm
-  y_norm = torch.sqrt((y**2).sum(2).view(y.shape[0],1,y.shape[1])) # squared norm
-#   dist = x_norm + y_norm - 2.0 * torch.bmm(x, y_t)
-#   dist[dist != dist] = 0 # replace nan values with 0
+  y_norm = torch.sqrt((y**2).sum(2).view(y.shape[0],1,y.shape[1])) 
+  # dist[dist != dist] = 0 # replace nan values with 0
   demonimator = torch.clamp(x_norm*y_norm, min = 1e-8)
   nominator = torch.bmm(x, y_t)
+  cos_siimilarity = torch.bmm(x, y_t)/torch.clamp(x_norm*y_norm, min = 1e-8)
 #   return torch.clamp(dist, 0.0, np.inf)
-  return nominator/demonimator
+  return 1-cos_siimilarity
 
 
 def batched_eye_like(x, n):

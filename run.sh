@@ -13,7 +13,8 @@ python run.py \
 --contrastive_lamda '1' \
 --lr 1e-5 \
 --validate 'False' \
---schedule_lr_fraction 1
+--schedule_lr_fraction 1\
+--margin 0.5
 # --num_matches '4000' 
 # --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
 # --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \ 
