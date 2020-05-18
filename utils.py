@@ -114,8 +114,8 @@ def batch_pairwise_squared_distances(x, y):
   Output: dist is a bxNxM matrix where dist[b,i,j] is the square norm between x[b,i,:] and y[b,j,:]
   i.e. dist[i,j] = ||x[b,i,:]-y[b,j,:]||^2                                                         
   '''                                               
-  x = x.to(torch.float32)  
-  y = y.to(torch.float32)                                             
+  x = x.to(torch.float32).to(device)  
+  y = y.to(torch.float32).to(device)                                             
   x_norm = (x**2).sum(2).view(x.shape[0],x.shape[1],1)
   y_t = y.permute(0,2,1).contiguous()
   y_norm = (y**2).sum(2).view(y.shape[0],1,y.shape[1])
@@ -364,4 +364,6 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)
         # mdist = torch.mean(mdist, dim=-1)
 
-        return torch.sum(mdist)
+        # return torch.sum(mdist)
+        return torch.mean(mdist)
+
