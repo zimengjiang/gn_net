@@ -123,6 +123,28 @@ def batch_pairwise_squared_distances(x, y):
   dist[dist != dist] = 0 # replace nan values with 0
   return torch.clamp(dist, 0.0, np.inf)
 
+def batch_pairwise_cos_distances(x, y):
+  '''                                                                                              
+  Modified from https://discuss.pytorch.org/t/efficient-distance-matrix-computation/9065/3         
+  Input: x is a bxNxd matrix y is an optional bxMxd matirx                                                             
+  Output: dist is a bxNxM matrix where dist[b,i,j] is the square norm between x[b,i,:] and y[b,j,:]
+  i.e. dist[i,j] = ||x[b,i,:]-y[b,j,:]||^2                                                         
+  '''                                               
+  x = x.to(torch.float32)  
+  y = y.to(torch.float32)                                             
+#   x_norm = (x**2).sum(2).view(x.shape[0],x.shape[1],1) # squared norm
+  x_norm = torch.sqrt((x**2).sum(2).view(x.shape[0],x.shape[1],1))
+  y_t = y.permute(0,2,1).contiguous()
+#   y_norm = (y**2).sum(2).view(y.shape[0],1,y.shape[1]) # squared norm
+  y_norm = torch.sqrt((y**2).sum(2).view(y.shape[0],1,y.shape[1])) # squared norm
+#   dist = x_norm + y_norm - 2.0 * torch.bmm(x, y_t)
+#   dist[dist != dist] = 0 # replace nan values with 0
+  demonimator = torch.clamp(x_norm*y_norm, min = 1e-8)
+  nominator = torch.bmm(x, y_t)
+#   return torch.clamp(dist, 0.0, np.inf)
+  return nominator/demonimator
+
+
 def batched_eye_like(x, n):
     """Create a batch of identity matrices.
     Args:
@@ -279,14 +301,18 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         e1_sliced_ = extract_features(embedding1, a1) #(BxN)*C
         e1_sliced = e1_sliced_.reshape((B, N, C)) # checked BxNxC
         e2_sliced_ = extract_features(embedding2, a2)
+        mean_e1 = torch.mean(e1_sliced_, dim=0)
         # e2_sliced = e2_sliced.reshape((B, N, C)) # checked
         # reshape embeddings to (B,H*W,C)
         # e1 = embedding1.reshape((B,C,-1)) # checked
         # e1 = e1.transpose(1,2) # checked
         e2 = embedding2.reshape((B,C,-1)) # checked
         e2 = e2.transpose(1,2) # checked
+        e2_long = e2.reshape(-1,C)
+        e2_mean = torch.mean(e2_long,dim=0)
         # feature distance matrix from anchor1 to image 2
-        f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
+        # f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
+        f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,e2)
         # feature distance matrix from anchor2 to image 1
         # f_dist_a2_img1 = batch_pairwise_squared_distances(e2_sliced,e1) # dim: B x #a2 x #pixels in img1
         # get topM hardest samples, might loose it to semi hardest
