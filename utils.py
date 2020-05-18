@@ -123,7 +123,7 @@ def batch_pairwise_squared_distances(x, y):
   dist[dist != dist] = 0 # replace nan values with 0
   return torch.clamp(dist, 0.0, np.inf)
 
-def batch_pairwise_cos_distances(x, y):
+def batch_pairwise_cos_distances(x, y, batched):
   '''                                                                                              
   Modified from https://discuss.pytorch.org/t/efficient-distance-matrix-computation/9065/3         
   Input: x is a bxNxd matrix y is an optional bxMxd matirx                                                             
@@ -131,16 +131,31 @@ def batch_pairwise_cos_distances(x, y):
   i.e. dist[i,j] = ||x[b,i,:]-y[b,j,:]||^2                                                         
   '''                                               
   x = x.to(torch.float32)  
-  y = y.to(torch.float32)                                             
-  x_norm = torch.sqrt((x**2).sum(2).view(x.shape[0],x.shape[1],1))
-  y_t = y.permute(0,2,1).contiguous()
-  y_norm = torch.sqrt((y**2).sum(2).view(y.shape[0],1,y.shape[1])) 
+  y = y.to(torch.float32)        
+#   x_norm2 = (x**2).sum(2).view(x.shape[0],x.shape[1],1)
+#   mask = x_norm2 == 0.0
+#   x_norm2 = x_norm2 + mask*1e-16
+#   x_norm = torch.sqrt(x_norm2)
+#   x_norm = x_norm*(1-mask)
+#   y_t = y.permute(0,2,1).contiguous()
+#   y_norm = torch.sqrt((y**2).sum(2).view(y.shape[0],1,y.shape[1])) 
   # dist[dist != dist] = 0 # replace nan values with 0
-  demonimator = torch.clamp(x_norm*y_norm, min = 1e-8)
-  nominator = torch.bmm(x, y_t)
-  cos_siimilarity = torch.bmm(x, y_t)/torch.clamp(x_norm*y_norm, min = 1e-8)
-#   return torch.clamp(dist, 0.0, np.inf)
-  return 1-cos_siimilarity
+   # Normalize descriptors
+  x_norm = torch.norm(x, p=2, dim=-1, keepdim=True)
+  mask = x_norm==0.0
+  x_norm = x_norm + mask*1e-16
+  y_norm = torch.norm(y, p=2, dim=-1, keepdim=True)
+  mask = y_norm==0.0
+  y_norm = y_norm + mask*1e-16
+  x = x / x_norm
+  y = y / y_norm
+  if batched:
+    y_t = y.permute(0,2,1).contiguous()
+    cos_simi = torch.bmm(x, y_t)
+    return 1-cos_simi
+  else:
+    return (x*y).sum(-1)
+  
 
 
 def batched_eye_like(x, n):
@@ -310,7 +325,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         e2_mean = torch.mean(e2_long,dim=0)
         # feature distance matrix from anchor1 to image 2
         # f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
-        f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,e2)
+        f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,e2, batched=True)
         # feature distance matrix from anchor2 to image 1
         # f_dist_a2_img1 = batch_pairwise_squared_distances(e2_sliced,e1) # dim: B x #a2 x #pixels in img1
         # get topM hardest samples, might loose it to semi hardest
@@ -358,7 +373,8 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # loss_neg = dist_nn12_ok.sum(-1)
         # print(loss_neg)
         # loss_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
-        loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
+        # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
+        loss_pos = batch_pairwise_cos_distances(e1_sliced_, e2_sliced_, batched = False)
         mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
         # tmp = torch.mean(mdist, dim=1)
         # print(loss_pos)
