@@ -60,7 +60,7 @@ if not len(pair_files1):
     raise Exception('No correspondence file found at {}'.format(pair_file_roots1))
 
 num_dataset = len(pair_files1)
-num_valset = round(0 * num_dataset)
+num_valset = round(0.1 * num_dataset)
 num_trainset = num_dataset - num_valset
 print('\nnum_dataset: {} '.format(num_dataset))
 print('num_trainset: {} '.format(num_trainset))
@@ -93,6 +93,7 @@ torch.manual_seed(0)
 # number of trainset and number of valset should sum up to len(dataset)
 trainset, valset = torch.utils.data.random_split(dataset, [num_trainset, num_valset])
 train_loader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+
 # modified 5.18 for debugging
 if args.validate:
     val_loader = DataLoader(valset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)

@@ -142,7 +142,8 @@ class GNLoss(nn.Module):
         # second error term
         log_det = torch.log(torch.det(H)).to(device)
         e2 = B * N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device)
-        e = e1 + 2 * e2 / 7
+        # e = e1 + 2 * e2 / 7
+        e = e1 + e2 / 8
         return e
 
     def forward(self, F_a, F_b, known_matches, epoch):

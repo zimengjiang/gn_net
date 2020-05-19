@@ -364,6 +364,6 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)
         # mdist = torch.mean(mdist, dim=-1)
 
-        # return torch.sum(mdist)
-        return torch.mean(mdist)
+        # return torch.mean(mdist)
+        return torch.sum(mdist)
 

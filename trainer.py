@@ -62,7 +62,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}\ttriplet: {:.6f}\tgn loss: {:.6f}'.format(epoch + 1, n_epochs, train_loss, total_contras_loss, total_gnloss)
         message += ' Lr:{}'.format(get_lr(optimizer))
         if val_loader and (epoch % validation_frequency == 0):
-            val_loss, val_contras_loss, val_gnloss = test_epoch(val_loader, model, loss_fn, cuda)
+            val_loss, val_contras_loss, val_gnloss = test_epoch(val_loader, model, loss_fn, cuda, epoch)
             val_loss /= len(val_loader)
             val_contras_loss /= len(val_loader)
             val_gnloss /= len(val_loader)
@@ -245,7 +245,7 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, sav
     return total_loss, total_contras_loss, total_gnloss
 
 
-def test_epoch(val_loader, model, loss_fn, cuda):
+def test_epoch(val_loader, model, loss_fn, cuda, epoch):
     with torch.no_grad():
         model.eval()
         val_loss = 0
@@ -272,6 +272,9 @@ def test_epoch(val_loader, model, loss_fn, cuda):
                 corres_ab = (corres_ab,)
                 loss_inputs += corres_ab
 
+            # modified for triplet loss negative part
+            loss_inputs += (epoch,)
+            
             loss_outputs, contras_loss_outputs, gnloss_outputs = loss_fn(*loss_inputs)
             loss = loss_outputs[0] if type(loss_outputs) in (tuple, list) else loss_outputs
             contras_loss = contras_loss_outputs[0] if type(contras_loss_outputs) in (tuple, list) else contras_loss_outputs

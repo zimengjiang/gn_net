@@ -9,10 +9,10 @@ python run.py \
 --scale 4 \
 --total_epochs 100 \
 --save_root '/local/home/lixxue/gnnet/checkpoint' \
---gn_loss_lamda '0.002' \
---contrastive_lamda '100' \
+--gn_loss_lamda '0.0005' \
+--contrastive_lamda '1' \
 --lr 1e-5 \
---validate 'False' \
+--validate 'True' \
 --schedule_lr_fraction '1' \
 --margin '0.5'
 # --num_matches '4000' 
