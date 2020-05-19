@@ -4,6 +4,7 @@ import shutil, os
 import numpy as np
 import torch
 import torch.nn.functional as F
+import wandb
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -359,6 +360,9 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         loss_pos = batch_pairwise_cos_distances(e1_sliced_, e2_sliced_, batched = False)
         '''randomly sample a negative'''
         mdist = torch.clamp(loss_pos-loss_neg+self.margin, min=0.0)
+        loss_pos_mean = torch.mean(loss_pos, dim=-1)
+        loss_neg_mean = torch.mean(loss_neg, dim=-1)
+        wandb.log({"loss_pos_mean": loss_pos_mean, "loss_neg_mean": loss_neg_mean})
         '''mean over all negative pairs'''
         # loss_pos = loss_pos.reshape(B*N,1)
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)

@@ -1,15 +1,15 @@
 #!/bin/bash
 
 python run.py \
---dataset_root '/local/home/lixxue/gnnet/gn_net_data_tiny' \
+--dataset_root '/home/lechen/gnnet/gn_net_data_tiny' \
 --dataset_name 'cmu' \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \
 --query_folder 'query' \
 --scale 4 \
 --total_epochs 100 \
---save_root '/local/home/lixxue/gnnet/checkpoint' \
---gn_loss_lamda '0.0005' \
+--save_root '/home/lechen/gnnet/checkpoint/checkpoint1' \
+--gn_loss_lamda '0.01' \
 --contrastive_lamda '1' \
 --lr 1e-5 \
 --validate 'True' \

@@ -7,7 +7,7 @@ import argparse
 from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
-# import wandb
+import wandb
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--dataset_root', type=str, default='/local/home/lixxue/gnnet/gn_net_data_tiny')
@@ -16,15 +16,15 @@ parser.add_argument('--dataset_image_folder', type=str, default='images')
 parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
 parser.add_argument('--all_slice', type=bool, default=True)
-parser.add_argument('--slice', type=int, default=10)
+parser.add_argument('--slice', type=int, default=6)
 parser.add_argument('--transform', type=bool, default=True)
 parser.add_argument('--start_epoch', type=int, default=0)
 parser.add_argument('--total_epochs', type=int, default=50)
-parser.add_argument('--log_interval', type=int, default=10)
+parser.add_argument('--log_interval', type=int, default=100)
 parser.add_argument('--validation_frequency', type=int, default=1)
 parser.add_argument('--init', type=bool, default=True, help="Initialize the network weights")
 parser.add_argument('--batch_size', '-b', type=int, default=1, help="Batch size")
-parser.add_argument('--num_workers', '-n', type=int, default=16, help="Number of workers")
+parser.add_argument('--num_workers', '-n', type=int, default=1, help="Number of workers")
 parser.add_argument('--lr', type = float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency', type=int, default=20, help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
@@ -42,12 +42,10 @@ parser.add_argument('--validate', type=bool, default=True, help="validate during
 
 
 args = parser.parse_args()
-# wandb.init(config=args)
-# scale the original image by the factor of img_scale
-# img_scale = 2
 
-# num_trainset = 23012
-# num_valset = 5754
+wandb.init(config=args, project="gn_net_asl")
+wandb.config["more"] = "custom"
+
 
 pair_file_roots1 = Path(args.dataset_root, args.dataset_name, args.pair_info_folder)
 # /public_data/cmu/corrrespondence/*.mat

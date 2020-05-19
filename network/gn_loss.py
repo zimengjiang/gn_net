@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
+import wandb
 from enum import Enum
 from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient, MyFunctionNegativeTripletSelector, extract_features
 
@@ -143,7 +144,8 @@ class GNLoss(nn.Module):
         log_det = torch.log(torch.det(H)).to(device)
         e2 = B * N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device)
         # e = e1 + 2 * e2 / 7
-        e = e1 + e2 / 8
+        wandb.log({"gn_loss_e1": e1, "gn_loss_e2": e2})
+        e = e1 + 2 * e2 / 7
         return e
 
     def forward(self, F_a, F_b, known_matches, epoch):
