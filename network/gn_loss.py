@@ -2,20 +2,13 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
+import wandb
 from enum import Enum
 from utils import bilinear_interpolation, batched_eye_like, torch_gradient, MyFunctionNegativeTripletSelector, extract_features, normalize_
 
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
-
-class TripletDistanceMetric(Enum):
-    """
-    The metric for the triplet loss
-    """
-    COSINE = lambda x, y: 1 - F.cosine_similarity(x, y)
-    EUCLIDEAN = lambda x, y: F.pairwise_distance(x, y, p=2)
-    MANHATTAN = lambda x, y: F.pairwise_distance(x, y, p=1)
 
 
 class GNLoss(nn.Module):
@@ -33,6 +26,8 @@ class GNLoss(nn.Module):
         self.img_scale = img_scale  # original colored image is scaled by a factor img_scale.
         self.e1_lamda = e1_lamda
         self.e2_lamda = e2_lamda
+    
+    
     # def extract_features(self, f, indices):
     #     '''
     #     f: BxCxHxW
@@ -47,23 +42,6 @@ class GNLoss(nn.Module):
     #         else:
     #             f_2d = torch.cat((f_2d, f_bth), dim=1)
     #     return f_2d.transpose(0, 1)
-
-
-    def compute_triplet_loss_torch(self, fa, fp, fn):
-        triplet_loss = nn.TripletMarginLoss(margin=self.margin, p=2)
-        anchor = fa
-        positive = fp
-        negative = fn
-        output = triplet_loss(anchor, positive, negative)
-        return output
-
-
-    def compute_triplet_loss(self, fa, fp, fn):
-        distance_metric=TripletDistanceMetric.EUCLIDEAN
-        distance_pos = distance_metric(fa, fp)
-        distance_neg = distance_metric(fa, fn)
-        losses = F.relu(distance_pos - distance_neg + self.margin)
-        return losses.mean()
 
 
     def compute_contrastive_loss(self, fa, fb, pos):
@@ -91,7 +69,7 @@ class GNLoss(nn.Module):
 
 
     # @torchsnooper.snoop()
-    def compute_gn_loss(self, f_t, fb, ub, level):
+    def compute_gn_loss(self, f_t, fb, ub, level, train_or_not):
         '''
         f_t: target features F_a(ua)
         fb: feature map b, BxCxHxW
@@ -110,6 +88,8 @@ class GNLoss(nn.Module):
         # compute residual
         f_t = normalize_(f_t)
         f_s = normalize_(f_s)
+        # f_t = F.normalize(f_t, p=2, dim=-1)
+        # f_s = F.normalize(f_s, p=2, dim=-1)
         r = f_s - f_t
         # compute Jacobian
 
@@ -138,10 +118,17 @@ class GNLoss(nn.Module):
         log_det = torch.log(torch.det(H)).to(device)
         e2 = B * N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device)
         # e = e1 + 2 * e2 / 7
-        e = self.e1_lamda*e1 + self.e2_lamda*e2
+        if train_or_not:
+            # train
+            wandb.log({"train_gn_loss_e1": e1, "train_gn_loss_e2": e2})
+        else:
+            # val
+            wandb.log({"val_gn_loss_e1": e1, "val_gn_loss_e2": e2})
+        e = self.e1_lamda * e1 + self.e2_lamda * e2
         return e
 
-    def forward(self, F_a, F_b, known_matches, epoch):
+
+    def forward(self, F_a, F_b, known_matches, epoch, train_or_val):
         '''
         F_a is a list containing 4 feature maps of different shapes
         1: B x C X H/8 x W/8
@@ -204,7 +191,7 @@ class GNLoss(nn.Module):
             loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=400/level)
             
             '''compute gn loss'''
-            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level)  # //4
+            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level, train_or_val)  # //4
             # loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
             loss = self.contrastive_lamda*loss_triplet + (self.gn_lamda * loss_gn) + loss 
             # contras_loss = self.contrastive_lamda*(loss_pos + loss_neg) + contras_loss

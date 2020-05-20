@@ -1,14 +1,14 @@
 #!/bin/bash
 
 python run.py \
---dataset_root '/Users/zimengjiang/code/3dv/public_data' \
---dataset_name 'robotcar' \
+--dataset_root '/local/home/lixxue/Downloads/gn_net_data' \
+--dataset_name 'cmu' \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \
 --query_folder 'query' \
 --scale 4 \
 --total_epochs 100 \
---save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \
+--save_root '/local/home/lixxue/gnnet/checkpoint' \
 --gn_loss_lamda '0.01' \
 --contrastive_lamda '1' \
 --lr 1e-5 \
