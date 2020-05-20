@@ -265,11 +265,11 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
             val_contras_loss /= len(val_loader)
             val_gnloss /= len(val_loader)
 
-            message = 'Train: [epoch {}, {}/{} ({:.0f}%)]\tLoss: {:.6f}\ttriplet_Loss: {:.6f}\tgn_Loss: {:.6f}'.format(
+            message = 'Train: [epoch {}, {}/{} ({:.0f}%)] \tLoss: {:.6f} \ttriplet_Loss: {:.6f} \tgn_Loss: {:.6f}'.format(
                 epoch, batch_idx * len(img_ab[0]), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), np.mean(losses),
                 np.mean(contras_losses), np.mean(gnlosses))
-            message += '\nValidation:\tloss: {:.4f}\ttriplet loss: {:.6f}\tgn loss: {:.6f}\n'.format(
+            message += '\nValidation set: \tAverage loss: {:.6f} \ttriplet loss: {:.6f} \tgn loss: {:.6f}\n'.format(
                 val_loss, val_contras_loss, val_gnloss)
             imgA.append(wandb.Image(img_ab[0]))
             imgB.append(wandb.Image(img_ab[1]))
