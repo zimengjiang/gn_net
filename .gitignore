@@ -7,3 +7,4 @@ corres_sampler_old.py
 *.png
 check.py
 test.py
+wandb/
