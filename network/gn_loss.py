@@ -145,7 +145,7 @@ class GNLoss(nn.Module):
         e2 = B * N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device)
         # e = e1 + 2 * e2 / 7
         wandb.log({"gn_loss_e1": e1, "gn_loss_e2": e2})
-        e = e1 + 2 * e2 / 7
+        e = 2 * e1 / 7 +  e2 
         return e
 
     def forward(self, F_a, F_b, known_matches, epoch):

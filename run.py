@@ -1,5 +1,6 @@
 import torch
 from cmu_dataset import CMUDataset
+from robotcar_dataset import RobotcarDataset
 from trainer import fit
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -11,7 +12,7 @@ import wandb
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--dataset_root', type=str, default='/local/home/lixxue/gnnet/gn_net_data_tiny')
-parser.add_argument('--dataset_name', type=str, default='cmu')
+parser.add_argument('--dataset_name', type=str, default='robotcar')
 parser.add_argument('--dataset_image_folder', type=str, default='images')
 parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
@@ -25,15 +26,15 @@ parser.add_argument('--validation_frequency', type=int, default=1)
 parser.add_argument('--init', type=bool, default=True, help="Initialize the network weights")
 parser.add_argument('--batch_size', '-b', type=int, default=1, help="Batch size")
 parser.add_argument('--num_workers', '-n', type=int, default=1, help="Number of workers")
-parser.add_argument('--lr', type = float, default=1e-6)
-parser.add_argument('--schedule_lr_frequency', type=int, default=20, help='in number of iterations (0 for no schedule)')
+parser.add_argument('--lr', type = float, default=1e-5)
+parser.add_argument('--schedule_lr_frequency', type=int, default=25, help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale', type=int, default = 2, help="Scaling factor for input image")
 parser.add_argument('--save_root', type=str, default = '/local/home/lixxue/gnnet/checkpoint')
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
 parser.add_argument('--contrastive_lamda', type=float, default=1)
 parser.add_argument('--weight_decay', type=float, default=0.01)
-parser.add_argument('--num_matches', type=float, default=1024)
+parser.add_argument('--num_matches', type=float, default=2000)
 parser.add_argument('--resume_checkpoint', type=str, default=None)
 parser.add_argument('--nearest', type=bool, default=True, help="upsampling mode")
 parser.add_argument('--bilinear', type=bool, default=False, help="upsampling mode")
@@ -49,7 +50,7 @@ wandb.config["more"] = "custom"
 
 pair_file_roots1 = Path(args.dataset_root, args.dataset_name, args.pair_info_folder)
 # /public_data/cmu/corrrespondence/*.mat
-if not args.all_slice:
+if args.dataset_name == 'cmu' and args.all_slice == False:
     suffix1 = 'correspondence_slice{}*.mat'.format(args.slice)
 else:
     suffix1 = '*.mat'
@@ -74,17 +75,27 @@ print('device: ' + str(device) + '\n')
 
 '''set up data loaders'''
 # todo: make it configurable
-dataset = CMUDataset(root=args.dataset_root,
-                     name=args.dataset_name,
-                     image_folder=args.dataset_image_folder,
-                     pair_info_folder=args.pair_info_folder,
-                     cmu_slice_all=args.all_slice,
-                     cmu_slice=args.slice,
-                     queries_folder=args.query_folder,
-                     transform=args.transform,
-                     img_scale=args.scale,
-                     num_matches=args.num_matches
-                     )
+if args.dataset_name == 'cmu':
+    dataset = CMUDataset(root=args.dataset_root,
+                        name=args.dataset_name,
+                        image_folder=args.dataset_image_folder,
+                        pair_info_folder=args.pair_info_folder,
+                        cmu_slice_all=args.all_slice,
+                        cmu_slice=args.slice,
+                        queries_folder=args.query_folder,
+                        transform=args.transform,
+                        img_scale=args.scale,
+                        num_matches=args.num_matches
+                        )
+else:
+    dataset = RobotcarDataset(root=args.dataset_root,
+                              name=args.dataset_name,
+                              image_folder=args.dataset_image_folder,
+                              pair_info_folder=args.pair_info_folder,
+                              queries_folder=args.query_folder,
+                              transform=args.transform,
+                              img_scale=args.scale,
+                              num_matches=args.num_matches)
 
 torch.manual_seed(0)
 
