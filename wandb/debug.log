@@ -1,0 +1,12 @@
+2020-05-20 15:21:44,011 DEBUG   MainThread:1899 [wandb_config.py:_load_defaults():132] no defaults not found in config-defaults.yaml
+2020-05-20 15:21:44,040 DEBUG   MainThread:1899 [meta.py:_setup_code_git():49] probe for git information
+2020-05-20 15:21:44,065 DEBUG   MainThread:1899 [run_manager.py:__init__():546] Initialized sync for gn_net_workstation/2k4z0a88
+2020-05-20 15:21:44,074 INFO    MainThread:1899 [run_manager.py:wrap_existing_process():1148] wrapping existing process 1884
+2020-05-20 15:21:44,075 WARNING MainThread:1899 [io_wrap.py:register():104] SIGWINCH handler was not None: <Handlers.SIG_DFL: 0>
+2020-05-20 15:21:44,809 INFO    MainThread:1899 [run_manager.py:init_run():927] system metrics and metadata threads started
+2020-05-20 15:21:44,809 INFO    MainThread:1899 [run_manager.py:wrap_existing_process():1165] informing user process we are ready to proceed
+2020-05-20 15:21:44,810 INFO    MainThread:1899 [run_manager.py:_sync_etc():1272] entering loop for messages from user process
+2020-05-20 15:21:45,042 INFO    Thread-8  :1899 [run_manager.py:_on_file_modified():691] file/dir modified: /Users/zimengjiang/code/3dv/ours/gn-net/wandb/run-20200520_072140-2k4z0a88/config.yaml
+2020-05-20 15:22:17,901 INFO    MainThread:1899 [run_manager.py:_sync_etc():1381] closing log streams and sending exitcode to W&B
+jiang/code/3dv/ours/gn-net/wandb/run-20200520_072140-2k4z0a88/config.yaml
+2020-05-20 15:22:17,901 INFO    MainThread:1899 [2k4z0a88:run_manager.py:_sync_etc():1381] closing log streams and sending exitcode to W&B

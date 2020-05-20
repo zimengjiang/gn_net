@@ -5,7 +5,7 @@ import os, copy
 import matplotlib.pyplot as plt
 from utils import save_checkpoint, get_lr
 from tqdm import tqdm
-import wandb
+# import wandb
 
 
 cuda = torch.cuda.is_available()
@@ -41,7 +41,6 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     train_y_contras = []
     train_y_gn = []
 
-    wandb.watch(model, log="all")
 
     for epoch in range(start_epoch, n_epochs):
         # scheduler.step()
@@ -53,7 +52,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         '''
 
         # Train stage
-        train_loss, total_contras_loss, total_gnloss = train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init=False)
+        train_loss, total_contras_loss, total_gnloss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init=False)
         train_x.append(epoch + 1)
         train_y.append(train_loss)
         train_y_contras.append(total_contras_loss)
@@ -76,7 +75,6 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
 
 
             message += '\nEpoch: {}/{}. Validation set: Average loss: {:.4f}\ttriplet loss: {:.6f}\tgn loss: {:.6f}'.format(epoch + 1, n_epochs, val_loss, val_contras_loss, val_gnloss)
-            
             # save the currently best model
             if val_loss < best_loss:
                 best_loss = val_loss
@@ -90,7 +88,6 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
             save_checkpoint(model.state_dict(), False, save_root, str(epoch))
         print(message)
 
-        wandb.log({"epoch": epoch, "total_train_loss": train_loss, "train_triplet_loss": total_contras_loss, "train_gn_loss": total_gnloss, "total_val_loss": val_loss, "val_triplet_loss": val_contras_loss, "val_gn_loss": val_gnloss})
         # plt.figure(figsize=(12,8))
         # # plt.subplot(2, 2, 1)
         # plt.title("all_loss")
@@ -152,14 +149,12 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
         # plt.savefig("./gn_loss_pic.png")
         plt.savefig("./train_val_loss_pic.png")
-        wandb.Image(plt)
-        wandb.log({"loss_plot": plt})
         plt.close()
 
 
 
 
-def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init):
+def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init):
     # initialize network parameters, oscillates a lot here. not good
     if init:
         for m in model.modules():
@@ -167,6 +162,8 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_i
                 nn.init.xavier_normal_(m.weight.data)
                 m.bias.data.fill_(0)
 
+    # Magic
+    # wandb.watch(model)
     model.train()
     losses = []
     contras_losses = []
@@ -176,8 +173,6 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_i
     total_contras_loss = 0
     total_gnloss = 0
 
-    imgA = []
-    imgB = []
 
     for batch_idx, (img_ab, corres_ab) in enumerate((train_loader)):
         corres_ab = corres_ab if len(corres_ab) > 0 else None
@@ -229,18 +224,9 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_i
         optimizer.step()
 
         if batch_idx % log_interval == 0:
-            val_loss, val_contras_loss, val_gnloss = test_epoch(val_loader, model, loss_fn, cuda, epoch)
-            val_loss /= len(val_loader)
-            val_contras_loss /= len(val_loader)
-            val_gnloss /= len(val_loader)
-
             message = 'Train: [{}/{} ({:.0f}%)]\tLoss: {:.6f}\ttriplet_Loss: {:.6f}\tgn_Loss: {:.6f}'.format(
                 batch_idx * len(img_ab[0]), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), np.mean(losses), np.mean(contras_losses), np.mean(gnlosses))
-            message += '\n\tValidation: Average loss: {:.4f}\ttriplet loss: {:.6f}\tgn loss: {:.6f}\n'.format(val_loss, val_contras_loss, val_gnloss)
-            imgA.append(wandb.Image(img_ab[0]))
-            imgB.append(wandb.Image(img_ab[1]))
-            wandb.log({"current_epoch": epoch, "train_img_a":imgA, "train_img_b":imgB, "per_step_loss": np.mean(losses), "per_step_triplet_loss": np.mean(contras_losses), "per_step_gn_loss": np.mean(gnlosses)})
 
             print(message)
             losses = []
@@ -255,8 +241,6 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_i
     total_contras_loss /= (batch_idx + 1)
     total_gnloss /= (batch_idx + 1)
 
-
-
     return total_loss, total_contras_loss, total_gnloss
 
 
@@ -266,9 +250,6 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
         val_loss = 0
         val_contras_loss = 0
         val_gnloss = 0
-
-        imgA = []
-        imgB = []
 
         for batch_idx, (img_ab, corres_ab) in enumerate(val_loader):
             corres_ab = corres_ab if len(corres_ab) > 0 else None
@@ -301,11 +282,9 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             val_loss += loss.item()
             val_contras_loss += contras_loss.item()
             val_gnloss += gnloss.item()
-            imgA.append(wandb.Image(img_ab[0]))
-            imgB.append(wandb.Image(img_ab[1]))
 
 
             # for metric in metrics:
             #     metric(outputs, target, loss_outputs)
-    
+
     return val_loss, val_contras_loss, val_gnloss

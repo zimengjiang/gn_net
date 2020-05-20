@@ -40,6 +40,8 @@ parser.add_argument('--nearest', type=bool, default=True, help="upsampling mode"
 parser.add_argument('--bilinear', type=bool, default=False, help="upsampling mode")
 parser.add_argument('--margin', type=float, default=1, help="triplet loss margin")
 parser.add_argument('--validate', type=bool, default=True, help="validate during training or not")
+parser.add_argument('--e1_lamda', type=float, default=1)
+parser.add_argument('--e2_lamda', type=float, default=1)
 
 
 args = parser.parse_args()
@@ -123,7 +125,8 @@ if (args.resume_checkpoint):
     model.load_state_dict(torch.load(args.resume_checkpoint,map_location=torch.device(device)))
 
 # set up loss
-loss_fn = GNLoss(margin=args.margin, contrastive_lamda=args.contrastive_lamda, gn_lamda=args.gn_loss_lamda, img_scale=args.scale)
+loss_fn = GNLoss(margin=args.margin, contrastive_lamda=args.contrastive_lamda, gn_lamda=args.gn_loss_lamda, img_scale=args.scale,
+e1_lamda=args.e1_lamda, e2_lamda=args.e2_lamda)
 optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
 scheduler = optim.lr_scheduler.StepLR(optimizer, args.schedule_lr_frequency, gamma=args.schedule_lr_fraction,

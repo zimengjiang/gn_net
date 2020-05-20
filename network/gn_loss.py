@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
-import wandb
 from enum import Enum
-from utils import MyHardNegativePairSelector, bilinear_interpolation, batched_eye_like, torch_gradient, MyFunctionNegativeTripletSelector, extract_features
+from utils import bilinear_interpolation, batched_eye_like, torch_gradient, MyFunctionNegativeTripletSelector, extract_features, normalize_
 
 
 cuda = torch.cuda.is_available()
@@ -24,7 +23,7 @@ class GNLoss(nn.Module):
     GN loss function.
     '''
 
-    def __init__(self, margin=1, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2):
+    def __init__(self, margin=1, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2, e1_lamda = 1, e2_lamda = 2/7):
         super(GNLoss, self).__init__()
         self.margin = margin
         # self.pair_selector = MyHardNegativePairSelector()
@@ -32,6 +31,8 @@ class GNLoss(nn.Module):
         self.gn_lamda = gn_lamda
         self.contrastive_lamda = contrastive_lamda
         self.img_scale = img_scale  # original colored image is scaled by a factor img_scale.
+        self.e1_lamda = e1_lamda
+        self.e2_lamda = e2_lamda
     # def extract_features(self, f, indices):
     #     '''
     #     f: BxCxHxW
@@ -97,18 +98,9 @@ class GNLoss(nn.Module):
         ub: pos matches of ua in b
         '''
         # compute start point and its feature
-        # ub = corres_pos['b']
         ub = ub.to(device)
         B, N, _ = ub.shape
         # xs = torch.round(torch.rand(ub.shape) + ub) #round this causes bugs in bilinear interpolation!!! all weights becomes 0!
-
-        # p_x = torch.clamp(xs[:,:,0], max = (self.max_size_x-1) // level, min = 0)
-        # p_y = torch.clamp(xs[:,:,1], max = (self.max_size_y-1) // level, min = 0)
-        # xs = torch.stack((p_x, p_y), dim = -1)
-        # tmp,_ = torch.max(xs[:,:,0],dim=-1)
-        # tmp,_ = torch.max(xs[:,:,1], dim = -1)
-        # xs = torch.round(torch.rand(ub.shape) + ub)
-        # check if go beyound boundaries
 
         # xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
         xs = torch.FloatTensor(ub.shape).normal_(0).to(device) + ub.to(device)
@@ -116,6 +108,8 @@ class GNLoss(nn.Module):
         # torch.clamp(min=0, max = self.max_size[1], xs[:]) # self.max_size: H x W
         f_s = extract_features(fb, xs)
         # compute residual
+        f_t = normalize_(f_t)
+        f_s = normalize_(f_s)
         r = f_s - f_t
         # compute Jacobian
 
@@ -144,8 +138,7 @@ class GNLoss(nn.Module):
         log_det = torch.log(torch.det(H)).to(device)
         e2 = B * N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device)
         # e = e1 + 2 * e2 / 7
-        wandb.log({"gn_loss_e1": e1, "gn_loss_e2": e2})
-        e = 2 * e1 / 7 +  e2 
+        e = self.e1_lamda*e1 + self.e2_lamda*e2
         return e
 
     def forward(self, F_a, F_b, known_matches, epoch):

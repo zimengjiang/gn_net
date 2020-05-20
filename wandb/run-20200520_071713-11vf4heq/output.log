@@ -1,0 +1,12 @@
+
+num_dataset: 2 
+num_trainset: 2 
+num_valset: 0 
+
+Arguments & hyperparams: 
+Namespace(all_slice=False, batch_size=1, bilinear=True, contrastive_lamda=1, dataset_image_folder='images', dataset_name='cmu', dataset_root='/Users/zimengjiang/code/3dv/public_data', gn_loss_lamda=0.003, init=True, log_interval=100, lr=1e-05, margin=1, nearest=True, num_matches=2000, num_workers=1, pair_info_folder='correspondence', query_folder='query_all', resume_checkpoint=None, save_root='/Users/zimengjiang/code/3dv/ours/checkpoint', scale=2, schedule_lr_fraction=0.1, schedule_lr_frequency=25, slice=6, start_epoch=0, total_epochs=50, transform=True, validate=True, validation_frequency=1, weight_decay=0.01)
+device: cpu
+
+>> Found 2 image pairs for slice 6
+****** START ****** 
+

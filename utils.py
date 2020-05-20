@@ -124,6 +124,12 @@ def batch_pairwise_squared_distances(x, y):
   dist[dist != dist] = 0 # replace nan values with 0
   return torch.clamp(dist, 0.0, np.inf)
 
+def normalize_(x):
+  x_norm = torch.norm(x, p=2, dim=-1, keepdim=True)
+  mask = x_norm==0.0
+  x_norm = x_norm + mask*1e-16
+  return x/x_norm
+
 def batch_pairwise_cos_distances(x, y, batched):
   '''                                                                                              
   Modified from https://discuss.pytorch.org/t/efficient-distance-matrix-computation/9065/3         
@@ -135,14 +141,16 @@ def batch_pairwise_cos_distances(x, y, batched):
   y = y.to(torch.float32)        
 
   # Normalize descriptors
-  x_norm = torch.norm(x, p=2, dim=-1, keepdim=True)
-  mask = x_norm==0.0
-  x_norm = x_norm + mask*1e-16
-  y_norm = torch.norm(y, p=2, dim=-1, keepdim=True)
-  mask = y_norm==0.0
-  y_norm = y_norm + mask*1e-16
-  x = x / x_norm
-  y = y / y_norm
+#   x_norm = torch.norm(x, p=2, dim=-1, keepdim=True)
+#   mask = x_norm==0.0
+#   x_norm = x_norm + mask*1e-16
+#   y_norm = torch.norm(y, p=2, dim=-1, keepdim=True)
+#   mask = y_norm==0.0
+#   y_norm = y_norm + mask*1e-16
+#   x = x / x_norm
+#   y = y / y_norm
+  x = normalize_(x)
+  y = normalize_(y)
   if batched:
     y_t = y.permute(0,2,1).contiguous()
     cos_simi = torch.bmm(x, y_t)

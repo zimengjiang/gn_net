@@ -1,0 +1,100 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.8.36
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.7.1
+all_slice:
+  desc: null
+  value: false
+batch_size:
+  desc: null
+  value: 1
+bilinear:
+  desc: null
+  value: true
+contrastive_lamda:
+  desc: null
+  value: 1
+dataset_image_folder:
+  desc: null
+  value: images
+dataset_name:
+  desc: null
+  value: cmu
+dataset_root:
+  desc: null
+  value: /Users/zimengjiang/code/3dv/public_data
+gn_loss_lamda:
+  desc: null
+  value: 0.003
+init:
+  desc: null
+  value: true
+log_interval:
+  desc: null
+  value: 100
+lr:
+  desc: null
+  value: 1.0e-05
+margin:
+  desc: null
+  value: 1
+more:
+  desc: null
+  value: custom
+nearest:
+  desc: null
+  value: true
+num_matches:
+  desc: null
+  value: 2000
+num_workers:
+  desc: null
+  value: 1
+pair_info_folder:
+  desc: null
+  value: correspondence
+query_folder:
+  desc: null
+  value: query_all
+resume_checkpoint:
+  desc: null
+  value: null
+save_root:
+  desc: null
+  value: /Users/zimengjiang/code/3dv/ours/checkpoint
+scale:
+  desc: null
+  value: 2
+schedule_lr_fraction:
+  desc: null
+  value: 0.1
+schedule_lr_frequency:
+  desc: null
+  value: 25
+slice:
+  desc: null
+  value: 6
+start_epoch:
+  desc: null
+  value: 0
+total_epochs:
+  desc: null
+  value: 50
+transform:
+  desc: null
+  value: true
+validate:
+  desc: null
+  value: true
+validation_frequency:
+  desc: null
+  value: 1
+weight_decay:
+  desc: null
+  value: 0.01
