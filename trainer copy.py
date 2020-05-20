@@ -53,7 +53,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
         '''
 
         # Train stage
-        train_loss, total_contras_loss, total_gnloss = train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init=False)
+        train_loss, total_contras_loss, total_gnloss = train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init=False)
         train_x.append(epoch + 1)
         train_y.append(train_loss)
         train_y_contras.append(total_contras_loss)
@@ -159,7 +159,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
 
 
 
-def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init):
+def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, save_root, epoch, init):
     # initialize network parameters, oscillates a lot here. not good
     if init:
         for m in model.modules():
@@ -229,15 +229,9 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_i
         optimizer.step()
 
         if batch_idx % log_interval == 0:
-            val_loss, val_contras_loss, val_gnloss = test_epoch(val_loader, model, loss_fn, cuda, epoch)
-            val_loss /= len(val_loader)
-            val_contras_loss /= len(val_loader)
-            val_gnloss /= len(val_loader)
-
             message = 'Train: [{}/{} ({:.0f}%)]\tLoss: {:.6f}\ttriplet_Loss: {:.6f}\tgn_Loss: {:.6f}'.format(
                 batch_idx * len(img_ab[0]), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), np.mean(losses), np.mean(contras_losses), np.mean(gnlosses))
-            message += '\nValidation: Average loss: {:.4f}\ttriplet loss: {:.6f}\tgn loss: {:.6f}'.format(val_loss, val_contras_loss, val_gnloss)
             imgA.append(wandb.Image(img_ab[0]))
             imgB.append(wandb.Image(img_ab[1]))
             wandb.log({"current_epoch": epoch, "train_img_a":imgA, "train_img_b":imgB, "per_step_loss": np.mean(losses), "per_step_triplet_loss": np.mean(contras_losses), "per_step_gn_loss": np.mean(gnlosses)})
@@ -254,8 +248,6 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda, log_i
     total_loss /= (batch_idx + 1)
     total_contras_loss /= (batch_idx + 1)
     total_gnloss /= (batch_idx + 1)
-
-
 
     return total_loss, total_contras_loss, total_gnloss
 

@@ -15,7 +15,7 @@ parser.add_argument('--dataset_name', type=str, default='cmu')
 parser.add_argument('--dataset_image_folder', type=str, default='images')
 parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
-parser.add_argument('--all_slice', type=bool, default=True)
+parser.add_argument('--all_slice', type=bool, default=False)
 parser.add_argument('--slice', type=int, default=6)
 parser.add_argument('--transform', type=bool, default=True)
 parser.add_argument('--start_epoch', type=int, default=0)
@@ -32,7 +32,7 @@ parser.add_argument('--scale', type=int, default = 2, help="Scaling factor for i
 parser.add_argument('--save_root', type=str, default = '/local/home/lixxue/gnnet/checkpoint')
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
 parser.add_argument('--contrastive_lamda', type=float, default=1)
-parser.add_argument('--weight_decay', type=float, default=0.001)
+parser.add_argument('--weight_decay', type=float, default=0.01)
 parser.add_argument('--num_matches', type=float, default=1024)
 parser.add_argument('--resume_checkpoint', type=str, default=None)
 parser.add_argument('--nearest', type=bool, default=True, help="upsampling mode")
@@ -43,7 +43,7 @@ parser.add_argument('--validate', type=bool, default=True, help="validate during
 
 args = parser.parse_args()
 
-wandb.init(config=args, project="gn_net_asl")
+wandb.init(config=args, project="gn_net_workstation")
 wandb.config["more"] = "custom"
 
 
@@ -113,7 +113,7 @@ if (args.resume_checkpoint):
 
 # set up loss
 loss_fn = GNLoss(margin=args.margin, contrastive_lamda=args.contrastive_lamda, gn_lamda=args.gn_loss_lamda, img_scale=args.scale)
-optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
 scheduler = optim.lr_scheduler.StepLR(optimizer, args.schedule_lr_frequency, gamma=args.schedule_lr_fraction,
                                       last_epoch=-1)  # optional
