@@ -26,23 +26,6 @@ class GNLoss(nn.Module):
         self.img_scale = img_scale  # original colored image is scaled by a factor img_scale.
         self.e1_lamda = e1_lamda
         self.e2_lamda = e2_lamda
-    
-    
-    # def extract_features(self, f, indices):
-    #     '''
-    #     f: BxCxHxW
-    #     indicies: BxNx2
-    #     '''
-    #     # B, C, H, W = f.shape
-    #     # N = indices.shape[1]
-    #     for b in range(f.shape[0]):
-    #         f_bth = bilinear_interpolation(f[b, :, :, :], indices[b, :, :])
-    #         if not b:
-    #             f_2d = f_bth
-    #         else:
-    #             f_2d = torch.cat((f_2d, f_bth), dim=1)
-    #     return f_2d.transpose(0, 1)
-
 
     def compute_contrastive_loss(self, fa, fb, pos):
         N = fa.shape[0]
@@ -58,16 +41,6 @@ class GNLoss(nn.Module):
         mdist = torch.clamp(mdist, min=0.0)
         return torch.sum(torch.pow(mdist,2) / N)
 
-        # wrong:
-        # diff = fa - fb
-        # if pos:
-        #     return torch.sum(torch.pow(diff, 2) / N)
-        # mdist = self.margin - diff
-        # mdist = torch.clamp(mdist, min=0.0)
-
-        # return torch.sum(torch.pow(mdist, 2) / N)
-
-
     # @torchsnooper.snoop()
     def compute_gn_loss(self, f_t, fb, ub, level, train_or_not):
         '''
@@ -80,10 +53,9 @@ class GNLoss(nn.Module):
         B, N, _ = ub.shape
         # xs = torch.round(torch.rand(ub.shape) + ub) #round this causes bugs in bilinear interpolation!!! all weights becomes 0!
 
-        # xs = torch.round(torch.rand(ub.shape) + ub) # start at most 1 pixel away from u_b
-        xs = torch.FloatTensor(ub.shape).normal_(0).to(device) + ub.to(device)
-        # xs = torch.rand(ub.shape).to(device) + ub.to(device)
-        # torch.clamp(min=0, max = self.max_size[1], xs[:]) # self.max_size: H x W
+        # xs = torch.FloatTensor(ub.shape).normal_(0).to(device) + ub.to(device)
+        '''can try uniform'''
+        xs = torch.FloatTensor(ub.shape).uniform_(-1,1).to(device) + ub
         f_s = extract_features(fb, xs)
         # compute residual
         f_t = normalize_(f_t)
@@ -102,30 +74,25 @@ class GNLoss(nn.Module):
         # J_xs_x = self.extract_features(torch.from_numpy(f_s_gx), xs)#.cuda()
         # J_xs_y = self.extract_features(torch.from_numpy(f_s_gy), xs)#.cuda()
 
-        J = torch.stack([J_xs_x, J_xs_y], dim=-1).type(torch.float32)  # todo: check dim
+        J = torch.stack([J_xs_x, J_xs_y], dim=-1)  # todo: check dim
         # compute Heissian
         eps = 1e-9  # for invertibility, need to be smaller
         H = (J.transpose(1, 2) @ J + eps * batched_eye_like(J, J.shape[2]))
-        r = r.reshape((r.shape[0], r.shape[1], 1)).type(torch.float32)
-        b = J.transpose(1, 2) @ r
-        xs_reshape = xs.reshape(B * N, 2, 1)
-        miu = xs_reshape - torch.inverse(H) @ b.type(torch.float32)
+        # r = r.reshape((r.shape[0], r.shape[1], 1))
+        b = J.transpose(1, 2) @ r[..., None]
+        # xs_reshape = xs.reshape(B * N, 2, 1)
+        miu = xs.reshape(B * N, 2, 1) - torch.inverse(H) @ b
         # first error term
-        e1 = 0.5 * ((ub.reshape(B * N, 2, 1) - miu).transpose(1, 2)).type(torch.float32) @ H @ (
-                    ub.reshape(B * N, 2, 1) - miu).type(torch.float32)  # check dim, very unsure
+        e1 = 0.5 * ((ub.reshape(B * N, 2, 1) - miu).transpose(1, 2)).type(torch.float32) @ H @ \
+            (ub.reshape(B * N, 2, 1) - miu).type(torch.float32)
         e1 = torch.sum(e1)
         # second error term
         log_det = torch.log(torch.det(H)).to(device)
         e2 = B * N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device)
         # e = e1 + 2 * e2 / 7
-        if train_or_not:
-            # train
-            wandb.log({"train_gn_loss_e1": e1, "train_gn_loss_e2": e2})
-        else:
-            # val
-            wandb.log({"val_gn_loss_e1": e1, "val_gn_loss_e2": e2})
         e = self.e1_lamda * e1 + self.e2_lamda * e2
-        return e
+        # print("e1: ",e1," e2: ", e2)
+        return e, e1, e2
 
 
     def forward(self, F_a, F_b, known_matches, epoch, train_or_val):
@@ -163,6 +130,12 @@ class GNLoss(nn.Module):
         loss = 0
         tripletloss = 0
         gnloss = 0
+        e1 = 0
+        e2 = 0
+
+        # added
+        tripletloss_level = []
+        gnloss_level = []
 
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
@@ -188,17 +161,23 @@ class GNLoss(nn.Module):
             '''compute triplet loss'''
             # loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
             topM = np.clip(64*np.exp(-epoch*0.6/1000), a_min = 5, a_max=None)
-            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=400/level)
-            
+            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=400/level, level=level, train_or_val=train_or_val)
+            tripletloss_level.append(loss_triplet)
+
             '''compute gn loss'''
-            loss_gn = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level, train_or_val)  # //4
+            loss_gn_all = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level, train_or_val)  # //4
+            loss_gn = loss_gn_all[0]
+            gnloss_level.append(loss_gn)
             # loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
             loss = self.contrastive_lamda*loss_triplet + (self.gn_lamda * loss_gn) + loss 
+
             # contras_loss = self.contrastive_lamda*(loss_pos + loss_neg) + contras_loss
             gnloss = (self.gn_lamda * loss_gn) + gnloss
             tripletloss = (self.contrastive_lamda * loss_triplet) + tripletloss
+            e1 = e1 + loss_gn_all[1]
+            e2 = e2 + loss_gn_all[2]
 
             # pos_loss = self.contrastive_lamda*loss_pos + pos_loss
             # neg_loss = self.contrastive_lamda*loss_neg + neg_loss
         # print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
-        return loss, tripletloss, gnloss
+        return loss, tripletloss, gnloss, tripletloss_level, gnloss_level, e1, e2

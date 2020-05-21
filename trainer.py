@@ -49,6 +49,7 @@ def fit(train_loader,
     train_y_contras = []
     train_y_gn = []
 
+
     wandb.watch(model, log="all")
 
     for epoch in range(start_epoch, n_epochs):
@@ -59,9 +60,8 @@ def fit(train_loader,
         Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. 
         See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
         '''
-
         # Train stage
-        train_loss, total_contras_loss, total_gnloss = train_epoch(
+        train_loss, total_contras_loss, total_gnloss, train_triplet_level, train_gn_level, train_e1, train_e2 = train_epoch(
             val_loader,
             train_loader,
             model,
@@ -71,7 +71,7 @@ def fit(train_loader,
             log_interval,
             save_root,
             epoch,
-            init=False)
+            init)
         train_x.append(epoch + 1)
         train_y.append(train_loss)
         train_y_contras.append(total_contras_loss)
@@ -81,12 +81,17 @@ def fit(train_loader,
         message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}\ttriplet: {:.6f}\tgn loss: {:.6f}'.format(
             epoch + 1, n_epochs, train_loss, total_contras_loss, total_gnloss)
         message += ' Lr:{}'.format(get_lr(optimizer))
+        # Validate stage
         if val_loader and (epoch % validation_frequency == 0):
-            val_loss, val_contras_loss, val_gnloss = test_epoch(
+            val_loss, val_contras_loss, val_gnloss, val_triplet_level, val_gn_level, val_e1, val_e2 = test_epoch(
                 val_loader, model, loss_fn, cuda, epoch)
             val_loss /= len(val_loader)
             val_contras_loss /= len(val_loader)
             val_gnloss /= len(val_loader)
+            val_triplet_level = [item / len(val_loader) for item in val_triplet_level]
+            val_gn_level = [item / len(val_loader) for item in val_gn_level]
+            val_e1 /= len(val_loader)
+            val_e2 /= len(val_loader)
 
             val_x.append(epoch + 1)
             val_y.append(val_loss)
@@ -114,42 +119,33 @@ def fit(train_loader,
             "total_train_loss": train_loss,
             "train_triplet_loss": total_contras_loss,
             "train_gn_loss": total_gnloss,
+            "train_triplet_level8": train_triplet_level[0],
+            "train_triplet_level4": train_triplet_level[1],
+            "train_triplet_level2": train_triplet_level[2],
+            "train_triplet_level1": train_triplet_level[3],
+            "train_gn_level8": train_gn_level[0],
+            "train_gn_level4": train_gn_level[1],
+            "train_gn_level2": train_gn_level[2],
+            "train_gn_level1": train_gn_level[3],
+            "train_gn_e1": train_e1,
+            "train_gn_e2": train_e2
+        })
+        if(val_loader):
+            wandb.log({
             "total_val_loss": val_loss,
             "val_triplet_loss": val_contras_loss,
-            "val_gn_loss": val_gnloss
-        })
-        
-        # plt.figure(figsize=(12,8))
-        # # plt.subplot(2, 2, 1)
-        # plt.title("all_loss")
-        # # plt.xlabel("epoch")
-        # # plt.ylabel("loss_value")
-        # plt.plot(val_x, val_y, "-s", label='val_total')
-        # plt.plot(val_x, val_y_contras, "-o", label='val_contrastive')
-        # plt.plot(val_x, val_y_gn, "-*", label='val_gn')
-        # plt.plot(train_x, train_y, "+-", label='train_total')
-        # plt.plot(train_x, train_y_contras, "-x", label='train_contrastive')
-        # plt.plot(train_x, train_y_gn, "->", label='train_gn')
-        # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
-        # plt.savefig("./all_loss_pic.png")
-
-        # plt.figure(figsize=(12,8))
-        # plt.subplot(2, 1, 1)
-        # plt.title("loss pos")
-        # # plt.xlabel("epoch")
-        # # plt.ylabel("loss_value")
-        # plt.plot(val_x, val_y_loss_pos, "-s", label='val_total')
-        # plt.plot(train_x, train_y_loss_pos, "+-", label='train_total')
-        # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
-
-        # plt.subplot(2, 1, 2)
-        # plt.title("loss neg")
-        # # plt.xlabel("epoch")
-        # # plt.ylabel("loss_value")
-        # plt.plot(val_x, val_y_loss_neg, "-s", label='val_total')
-        # plt.plot(train_x, train_y_loss_neg, "+-", label='train_total')
-        # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
-        # plt.savefig("./contrastive_loss_pic.png")
+            "val_gn_loss": val_gnloss,
+            "val_triplet_level8": val_triplet_level[0],
+            "val_triplet_level4": val_triplet_level[1],
+            "val_triplet_level2": val_triplet_level[2],
+            "val_triplet_level1": val_triplet_level[3],
+            "val_gn_level8": val_gn_level[0],
+            "val_gn_level4": val_gn_level[1],
+            "val_gn_level2": val_gn_level[2],
+            "val_gn_level1": val_gn_level[3],
+            "val_gn_e1": val_e1,
+            "val_gn_e2": val_e2
+            })
 
         plt.figure(figsize=(12, 8))
         plt.subplot(2, 1, 1)
@@ -184,20 +180,23 @@ def fit(train_loader,
 def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
                 log_interval, save_root, epoch, init):
     # initialize network parameters, oscillates a lot here. not good
-    if init:
+    if init and epoch == 0:
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.xavier_normal_(m.weight.data)
                 m.bias.data.fill_(0)
 
     model.train()
-    losses = []
-    contras_losses = []
-    gnlosses = []
+
+    # added
+    total_tripletloss_level = [0,0,0,0]
+    total_gnloss_level = [0,0,0,0]
 
     total_loss = 0
     total_contras_loss = 0
     total_gnloss = 0
+    total_e1 = 0
+    total_e2 = 0
 
     imgA = []
     imgB = []
@@ -238,7 +237,7 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         # modified to print gn loss seperately
         loss_inputs += (True, )
 
-        loss_outputs, contras_loss_outputs, gnloss_outputs = loss_fn(
+        loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2 = loss_fn(
             *loss_inputs)
         loss = loss_outputs[0] if type(loss_outputs) in (
             tuple, list) else loss_outputs
@@ -247,45 +246,18 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (
             tuple, list) else gnloss_outputs
 
-        losses.append(loss.item())
-        contras_losses.append(contras_loss.item())
-        gnlosses.append(gnloss.item())
 
         total_loss += loss.item()
         total_contras_loss += contras_loss.item()
         total_gnloss += gnloss.item()
+        total_e1 += e1.item()
+        total_e2 += e2.item()
 
+        for i in range(4):
+            total_tripletloss_level[i] += tripletloss_level[i]
+            total_gnloss_level[i] += gnloss_level[i]
         loss.backward()
         optimizer.step()
-
-        if batch_idx % log_interval == 0:
-            val_loss, val_contras_loss, val_gnloss = test_epoch(
-                val_loader, model, loss_fn, cuda, epoch)
-            val_loss /= len(val_loader)
-            val_contras_loss /= len(val_loader)
-            val_gnloss /= len(val_loader)
-
-            message = 'Train: [epoch {}, {}/{} ({:.0f}%)]\tLoss: {:.6f}\ttriplet_Loss: {:.6f}\tgn_Loss: {:.6f}'.format(
-                epoch, batch_idx * len(img_ab[0]), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), np.mean(losses),
-                np.mean(contras_losses), np.mean(gnlosses))
-            message += '\nValidation:\tloss: {:.4f}\ttriplet loss: {:.6f}\tgn loss: {:.6f}\n'.format(
-                val_loss, val_contras_loss, val_gnloss)
-            imgA.append(wandb.Image(img_ab[0]))
-            imgB.append(wandb.Image(img_ab[1]))
-            wandb.log({
-                "current_train_epoch": epoch,
-                "train_img_a": imgA,
-                "train_img_b": imgB,
-                "per_train_step_loss": np.mean(losses),
-                "per_train_step_triplet_loss": np.mean(contras_losses),
-                "per_train_step_gn_loss": np.mean(gnlosses)
-            })
-
-            print(message)
-            losses = []
-            contras_losses = []
-            gnlosses = []
 
         del img_ab
         del corres_ab
@@ -293,8 +265,12 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     total_loss /= (batch_idx + 1)
     total_contras_loss /= (batch_idx + 1)
     total_gnloss /= (batch_idx + 1)
+    total_tripletloss_level = [item / (batch_idx + 1) for item in total_tripletloss_level]
+    total_gnloss_level = [item / (batch_idx + 1) for item in total_gnloss_level]
+    total_e1 /= (batch_idx + 1)
+    total_e2 /= (batch_idx + 1)
 
-    return total_loss, total_contras_loss, total_gnloss
+    return total_loss, total_contras_loss, total_gnloss, total_tripletloss_level, total_gnloss_level, total_e1, total_e2
 
 
 def test_epoch(val_loader, model, loss_fn, cuda, epoch):
@@ -303,6 +279,11 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
         val_loss = 0
         val_contras_loss = 0
         val_gnloss = 0
+        val_e1 = 0
+        val_e2 = 0
+        # added
+        total_tripletloss_level = [0,0,0,0]
+        total_gnloss_level = [0,0,0,0]
 
         imgA = []
         imgB = []
@@ -335,7 +316,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             # modified to print gn loss seperately
             loss_inputs += (False, )
 
-            loss_outputs, contras_loss_outputs, gnloss_outputs = loss_fn(
+            loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2  = loss_fn(
                 *loss_inputs)
             loss = loss_outputs[0] if type(loss_outputs) in (
                 tuple, list) else loss_outputs
@@ -348,10 +329,16 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             val_loss += loss.item()
             val_contras_loss += contras_loss.item()
             val_gnloss += gnloss.item()
+            val_e1 += e1.item()
+            val_e2 += e2.item()
+
+            for i in range(4):
+                total_tripletloss_level[i] += tripletloss_level[i]
+                total_gnloss_level[i] += gnloss_level[i]
             imgA.append(wandb.Image(img_ab[0]))
             imgB.append(wandb.Image(img_ab[1]))
-
+        
             # for metric in metrics:
             #     metric(outputs, target, loss_outputs)
 
-    return val_loss, val_contras_loss, val_gnloss
+    return val_loss, val_contras_loss, val_gnloss, tripletloss_level, gnloss_level, val_e1, val_e2

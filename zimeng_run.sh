@@ -11,10 +11,12 @@ python run.py \
 --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \
 --gn_loss_lamda '0.01' \
 --contrastive_lamda '1' \
---lr 0 \
+--lr 1e-5 \
 --validate 'True' \
 --schedule_lr_fraction '1' \
---margin '0.5'
+--margin '0.5' \
+--weight_decay 0.001
+--validation_frequency 1  
 # --num_matches '4000' 
 # --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
 # --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \ 

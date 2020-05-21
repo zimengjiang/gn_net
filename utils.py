@@ -173,7 +173,7 @@ def batch_pairwise_cos_distances(x, y, batched):
         cos_simi = torch.bmm(x, y_t)
         return 1 - cos_simi
     else:
-        return (x * y).sum(-1)
+        return 1 - (x * y).sum(-1)
 
 
 def batched_eye_like(x, n):
@@ -200,7 +200,7 @@ def extract_features(f, indices):
             f_2d = f_bth
         else:
             f_2d = torch.cat((f_2d, f_bth), dim=1)
-    return f_2d.transpose(0, 1)
+    return f_2d.transpose(0, 1).type(torch.float32)
 
 
 def bilinear_interpolation(grid, idx):
@@ -250,9 +250,7 @@ def torch_gradient(f):
                                                      3).to(device)  # .cuda()
     sobel_x = torch.FloatTensor([[-1., 0., 1.], [-2., 0., 2.], [
         -1., 0., 1.
-    ]]).view(1, 1, 3, 3).to(
-        device
-    )  # pytorch performs cross-correlation instead of convolution in information theory
+    ]]).view(1, 1, 3, 3).to(device)  # pytorch performs cross-correlation instead of convolution in information theory
     f_gradx = F.conv2d(f.view(-1, 1, h, w), sobel_x, stride=1,
                        padding=1).view(b, c, h, w)
     f_grady = F.conv2d(f.view(-1, 1, h, w), sobel_y, stride=1,
@@ -331,7 +329,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         self.margin = margin
 
     def get_triplets(self, embedding1, embedding2, match_pos, scale, topM,
-                     dist_threshold):
+                     dist_threshold, level, train_or_val):
         """
         embedding1: feature map of image 1, BxCxHxW
         embedding2: feature map of image 2, BxCxHxW
@@ -406,12 +404,8 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
                                                 batched=False)
         '''randomly sample a negative'''
         mdist = torch.clamp(loss_pos - loss_neg + self.margin, min=0.0)
-        loss_pos_mean = torch.mean(loss_pos, dim=-1)
-        loss_neg_mean = torch.mean(loss_neg, dim=-1)
-        wandb.log({
-            "loss_pos_mean": loss_pos_mean,
-            "loss_neg_mean": loss_neg_mean
-        })
+        # loss_pos_mean = torch.mean(loss_pos, dim=-1)
+        # loss_neg_mean = torch.mean(loss_neg, dim=-1)
         '''mean over all negative pairs'''
         # loss_pos = loss_pos.reshape(B*N,1)
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)

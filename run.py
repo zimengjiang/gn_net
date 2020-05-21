@@ -24,10 +24,10 @@ parser.add_argument('--transform', type=bool, default=True)
 parser.add_argument('--start_epoch', type=int, default=0)
 parser.add_argument('--total_epochs', type=int, default=50)
 parser.add_argument('--log_interval', type=int, default=100)
-parser.add_argument('--validation_frequency', type=int, default=1)
+parser.add_argument('--validation_frequency', type=int, default=10)
 parser.add_argument('--init',
                     type=bool,
-                    default=True,
+                    default=False,
                     help="Initialize the network weights")
 parser.add_argument('--batch_size',
                     '-b',
@@ -54,7 +54,7 @@ parser.add_argument('--save_root',
                     default='/local/home/lixxue/gnnet/checkpoint')
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
 parser.add_argument('--contrastive_lamda', type=float, default=1)
-parser.add_argument('--weight_decay', type=float, default=0.02)
+parser.add_argument('--weight_decay', type=float, default=0.01)
 parser.add_argument('--num_matches', type=float, default=1024)
 parser.add_argument('--resume_checkpoint', type=str, default=None)
 parser.add_argument('--nearest',
@@ -94,8 +94,8 @@ if not len(pair_files1):
         'No correspondence file found at {}'.format(pair_file_roots1))
 
 num_dataset = len(pair_files1)
-num_valset = round(0.1 * num_dataset)
-num_trainset = num_dataset - num_valset
+num_valset = 1#round(0.1 * num_dataset)
+num_trainset = 1 #num_dataset - num_valset
 print('\nnum_dataset: {} '.format(num_dataset))
 print('num_trainset: {} '.format(num_trainset))
 print('num_valset: {} \n'.format(num_valset))
@@ -141,6 +141,7 @@ train_loader = DataLoader(trainset,
                           num_workers=args.num_workers)
 
 # modified 5.18 for debugging
+# jidegaihuilai
 if args.validate:
     val_loader = DataLoader(valset,
                             batch_size=args.batch_size,
