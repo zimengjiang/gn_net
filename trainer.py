@@ -259,6 +259,38 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         loss.backward()
         optimizer.step()
 
+<<<<<<< HEAD
+=======
+        if batch_idx % log_interval == 0:
+            val_loss, val_contras_loss, val_gnloss = test_epoch(
+                val_loader, model, loss_fn, cuda, epoch)
+            val_loss /= len(val_loader)
+            val_contras_loss /= len(val_loader)
+            val_gnloss /= len(val_loader)
+
+            message = 'Train: [epoch {}, {}/{} ({:.0f}%)] \tLoss: {:.6f} \ttriplet_Loss: {:.6f} \tgn_Loss: {:.6f}'.format(
+                epoch, batch_idx * len(img_ab[0]), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), np.mean(losses),
+                np.mean(contras_losses), np.mean(gnlosses))
+            message += '\nValidation set: \tAverage loss: {:.6f} \ttriplet loss: {:.6f} \tgn loss: {:.6f}\n'.format(
+                val_loss, val_contras_loss, val_gnloss)
+            imgA.append(wandb.Image(img_ab[0]))
+            imgB.append(wandb.Image(img_ab[1]))
+            wandb.log({
+                "current_train_epoch": epoch,
+                "train_img_a": imgA,
+                "train_img_b": imgB,
+                "per_train_step_loss": np.mean(losses),
+                "per_train_step_triplet_loss": np.mean(contras_losses),
+                "per_train_step_gn_loss": np.mean(gnlosses)
+            })
+
+            print(message)
+            losses = []
+            contras_losses = []
+            gnlosses = []
+
+>>>>>>> 3da5c91507ac5c4a604bde6af3526be7b35fb335
         del img_ab
         del corres_ab
         torch.cuda.empty_cache()

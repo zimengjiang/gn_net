@@ -328,8 +328,12 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         super(MyFunctionNegativeTripletSelector, self).__init__()
         self.margin = margin
 
+<<<<<<< HEAD
     def get_triplets(self, embedding1, embedding2, match_pos, scale, topM,
                      dist_threshold, level, train_or_val):
+=======
+    def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold, train_or_val):
+>>>>>>> 3da5c91507ac5c4a604bde6af3526be7b35fb335
         """
         embedding1: feature map of image 1, BxCxHxW
         embedding2: feature map of image 2, BxCxHxW
@@ -404,8 +408,20 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
                                                 batched=False)
         '''randomly sample a negative'''
         mdist = torch.clamp(loss_pos - loss_neg + self.margin, min=0.0)
+<<<<<<< HEAD
         # loss_pos_mean = torch.mean(loss_pos, dim=-1)
         # loss_neg_mean = torch.mean(loss_neg, dim=-1)
+=======
+        loss_pos_mean = torch.mean(loss_pos, dim=-1)
+        loss_neg_mean = torch.mean(loss_neg, dim=-1)
+        if train_or_val:
+            # train
+            wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
+        else:
+            # val
+            wandb.log({"val_loss_pos_mean": loss_pos_mean, "val_loss_neg_mean": loss_neg_mean})
+
+>>>>>>> 3da5c91507ac5c4a604bde6af3526be7b35fb335
         '''mean over all negative pairs'''
         # loss_pos = loss_pos.reshape(B*N,1)
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)

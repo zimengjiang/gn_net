@@ -42,7 +42,7 @@ class GNLoss(nn.Module):
         return torch.sum(torch.pow(mdist,2) / N)
 
     # @torchsnooper.snoop()
-    def compute_gn_loss(self, f_t, fb, ub, level, train_or_not):
+    def compute_gn_loss(self, f_t, fb, ub, level, train_or_val):
         '''
         f_t: target features F_a(ua)
         fb: feature map b, BxCxHxW
@@ -161,7 +161,7 @@ class GNLoss(nn.Module):
             '''compute triplet loss'''
             # loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
             topM = np.clip(64*np.exp(-epoch*0.6/1000), a_min = 5, a_max=None)
-            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=400/level, level=level, train_or_val=train_or_val)
+            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=400/level, train_or_val=train_or_val)
             tripletloss_level.append(loss_triplet)
 
             '''compute gn loss'''
