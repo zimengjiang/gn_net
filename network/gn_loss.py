@@ -140,7 +140,7 @@ class GNLoss(nn.Module):
         gnloss_level = []
         loss_pos_mean_level = []
         loss_neg_mean_level = []
-        num_matches_list = [500, 1000, 2000, 4000]
+        num_matches_list = [1000, 2000, 4000, 8000]
 
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
