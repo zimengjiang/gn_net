@@ -94,8 +94,8 @@ if not len(pair_files1):
         'No correspondence file found at {}'.format(pair_file_roots1))
 
 num_dataset = len(pair_files1)
-num_valset = 1#round(0.1 * num_dataset)
-num_trainset = 1 #num_dataset - num_valset
+num_valset = round(0.1 * num_dataset)
+num_trainset = num_dataset - num_valset
 print('\nnum_dataset: {} '.format(num_dataset))
 print('num_trainset: {} '.format(num_trainset))
 print('num_valset: {} \n'.format(num_valset))

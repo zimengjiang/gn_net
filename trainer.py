@@ -61,7 +61,7 @@ def fit(train_loader,
         See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
         '''
         # Train stage
-        train_loss, total_contras_loss, total_gnloss, train_triplet_level, train_gn_level, train_e1, train_e2 = train_epoch(
+        train_loss, total_contras_loss, total_gnloss, train_triplet_level, train_gn_level, train_e1, train_e2, total_loss_pos_mean_level, total_loss_neg_mean_level = train_epoch(
             val_loader,
             train_loader,
             model,
@@ -128,7 +128,15 @@ def fit(train_loader,
             "train_gn_level2": train_gn_level[2],
             "train_gn_level1": train_gn_level[3],
             "train_gn_e1": train_e1,
-            "train_gn_e2": train_e2
+            "train_gn_e2": train_e2,
+            "total_loss_pos_mean_level8": total_loss_pos_mean_level[0],
+            "total_loss_neg_mean_level8": total_loss_neg_mean_level[0],
+            "total_loss_pos_mean_level4": total_loss_pos_mean_level[1],
+            "total_loss_neg_mean_level4": total_loss_neg_mean_level[1],
+            "total_loss_pos_mean_level2": total_loss_pos_mean_level[2],
+            "total_loss_neg_mean_level2": total_loss_neg_mean_level[2],
+            "total_loss_pos_mean_level1": total_loss_pos_mean_level[3],
+            "total_loss_neg_mean_level1": total_loss_neg_mean_level[3]
         })
         if(val_loader):
             wandb.log({
@@ -191,6 +199,8 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     # added
     total_tripletloss_level = [0,0,0,0]
     total_gnloss_level = [0,0,0,0]
+    total_loss_pos_mean_level = [0,0,0,0]
+    total_loss_neg_mean_level = [0,0,0,0]
 
     total_loss = 0
     total_contras_loss = 0
@@ -237,8 +247,7 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         # modified to print gn loss seperately
         loss_inputs += (True, )
 
-        loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2 = loss_fn(
-            *loss_inputs)
+        loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2, loss_pos_mean_level, loss_neg_mean_level = loss_fn(*loss_inputs)
         loss = loss_outputs[0] if type(loss_outputs) in (
             tuple, list) else loss_outputs
         contras_loss = contras_loss_outputs[0] if type(
@@ -256,6 +265,9 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         for i in range(4):
             total_tripletloss_level[i] += tripletloss_level[i]
             total_gnloss_level[i] += gnloss_level[i]
+            total_loss_pos_mean_level[i] += loss_pos_mean_level[i]
+            total_loss_neg_mean_level[i] += loss_neg_mean_level[i]
+
         loss.backward()
         optimizer.step()
 
@@ -267,10 +279,12 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     total_gnloss /= (batch_idx + 1)
     total_tripletloss_level = [item / (batch_idx + 1) for item in total_tripletloss_level]
     total_gnloss_level = [item / (batch_idx + 1) for item in total_gnloss_level]
+    total_loss_pos_mean_level= [item / (batch_idx + 1) for item in total_loss_pos_mean_level]
+    total_loss_neg_mean_level= [item / (batch_idx + 1) for item in total_loss_neg_mean_level]
     total_e1 /= (batch_idx + 1)
     total_e2 /= (batch_idx + 1)
 
-    return total_loss, total_contras_loss, total_gnloss, total_tripletloss_level, total_gnloss_level, total_e1, total_e2
+    return total_loss, total_contras_loss, total_gnloss, total_tripletloss_level, total_gnloss_level, total_e1, total_e2, total_loss_pos_mean_level, total_loss_neg_mean_level
 
 
 def test_epoch(val_loader, model, loss_fn, cuda, epoch):

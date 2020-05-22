@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import wandb
-
+# import torchsnooper
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 
@@ -146,7 +146,7 @@ def normalize_(x):
     x_norm = x_norm + mask * 1e-16
     return x / x_norm
 
-
+# @torchsnooper.snoop()
 def batch_pairwise_cos_distances(x, y, batched):
     '''                                                                                              
     Modified from https://discuss.pytorch.org/t/efficient-distance-matrix-computation/9065/3         
@@ -169,12 +169,16 @@ def batch_pairwise_cos_distances(x, y, batched):
     x = normalize_(x)
     y = normalize_(y)
     if batched:
+        # x = normalize_(x)
+        # y = normalize_(y)
         y_t = y.permute(0, 2, 1).contiguous()
         cos_simi = torch.bmm(x, y_t)
         return 1 - cos_simi
     else:
+        # cos_simi = F.cosine_similarity(x, y, dim=-1, eps=1e-16)
+        # return 1 - cos_simi
         return 1 - (x * y).sum(-1)
-
+        
 
 def batched_eye_like(x, n):
     """Create a batch of identity matrices.
@@ -374,8 +378,8 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         idx_y = idx_1d // W
         idx_xy = torch.stack((idx_x, idx_y), dim=1)
         idx_batched_xy = idx_xy.repeat(B, 1, 1)
-        p_dist_12 = batch_pairwise_squared_distances(a1, idx_batched_xy)
-        mask_12 = p_dist_12 < dist_threshold
+        p_dist_12 = batch_pairwise_squared_distances(a2, idx_batched_xy) # modified (a1, idx_batched_xy)
+        mask_12 = p_dist_12 < (dist_threshold*H)**2
         f_dist_a1_img2[mask_12] = 1e4
 
         dist_nn12, idx_in_2 = f_dist_a1_img2.topk(topM, dim=-1, largest=False)
@@ -397,18 +401,21 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
 
         loss_neg = dist_nn12[torch.arange(B * N),
                              torch.randint(0, topM, (B * N, ))]
+
+        # loss_neg = 0 * loss_neg
         # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
         loss_pos = batch_pairwise_cos_distances(e1_sliced_,
                                                 e2_sliced_,
                                                 batched=False)
         '''randomly sample a negative'''
         mdist = torch.clamp(loss_pos - loss_neg + self.margin, min=0.0)
-        # loss_pos_mean = torch.mean(loss_pos, dim=-1)
-        # loss_neg_mean = torch.mean(loss_neg, dim=-1)
+        loss_pos_mean = torch.mean(loss_pos, dim=-1)
+        loss_neg_mean = torch.mean(loss_neg, dim=-1)
+        wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
         '''mean over all negative pairs'''
         # loss_pos = loss_pos.reshape(B*N,1)
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)
         # mdist = torch.mean(mdist, dim=-1)
 
         # return torch.mean(mdist)
-        return torch.sum(mdist)
+        return torch.sum(mdist), loss_pos_mean, loss_neg_mean

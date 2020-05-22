@@ -136,6 +136,8 @@ class GNLoss(nn.Module):
         # added
         tripletloss_level = []
         gnloss_level = []
+        loss_pos_mean_level = []
+        loss_neg_mean_level = []
 
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
@@ -161,8 +163,10 @@ class GNLoss(nn.Module):
             '''compute triplet loss'''
             # loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
             topM = np.clip(64*np.exp(-epoch*0.6/1000), a_min = 5, a_max=None)
-            loss_triplet = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=400/level, train_or_val=train_or_val)
+            loss_triplet, loss_pos_mean, loss_neg_mean = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches, self.img_scale*level, topM = int(topM), dist_threshold=0.4, train_or_val=train_or_val)
             tripletloss_level.append(loss_triplet)
+            loss_pos_mean_level.append(loss_pos_mean)
+            loss_neg_mean_level.append(loss_neg_mean)
 
             '''compute gn loss'''
             loss_gn_all = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches['b'] / (level * self.img_scale), level, train_or_val)  # //4
@@ -180,4 +184,4 @@ class GNLoss(nn.Module):
             # pos_loss = self.contrastive_lamda*loss_pos + pos_loss
             # neg_loss = self.contrastive_lamda*loss_neg + neg_loss
         # print('contrastive loss: {}, gn loss: {}'.format((loss_pos + loss_neg), self.lamda * loss_gn))
-        return loss, tripletloss, gnloss, tripletloss_level, gnloss_level, e1, e2
+        return loss, tripletloss, gnloss, tripletloss_level, gnloss_level, e1, e2, loss_pos_mean_level, loss_neg_mean_level
