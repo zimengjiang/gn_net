@@ -169,7 +169,8 @@ loss_fn = GNLoss(margin=args.margin,
                  gn_lamda=args.gn_loss_lamda,
                  img_scale=args.scale,
                  e1_lamda=args.e1_lamda,
-                 e2_lamda=args.e2_lamda)
+                 e2_lamda=args.e2_lamda,
+                 num_matches=args.num_matches)
 optimizer = optim.AdamW(model.parameters(),
                         lr=args.lr,
                         weight_decay=args.weight_decay)

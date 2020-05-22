@@ -9,12 +9,14 @@ python run.py \
 --scale 4 \
 --total_epochs 100 \
 --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint/robotcar' \
---gn_loss_lamda '0.01' \
+--gn_loss_lamda '0.05' \
 --contrastive_lamda '1' \
 --lr 1e-4 \
 --validate 'True' \
 --schedule_lr_fraction '1' \
 --margin '0.5' \
+--bilinear 'True' \
+--nearest 'False' \
 --weight_decay 0.001 \
 --validation_frequency 1  
 # --num_matches '4000' 

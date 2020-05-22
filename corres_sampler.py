@@ -57,26 +57,30 @@ def sample_correspondence(known_correspondence, img1, img2, sample_size=1024):
 
 
 def random_select_positive_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
-    # check the number of correspondences
-    if matches_in_1.shape[0] < num_of_pairs:
-        random_index = random.choices(range(0, matches_in_1.shape[0]), k=num_of_pairs)
-    else:
-        random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
+    matches_in_1 = matches_in_1[0]
+    matches_in_2 = matches_in_2[0]
+    # # check the number of correspondences
+    # if matches_in_1.shape[0] < num_of_pairs:
+    #     random_index = random.choices(range(0, matches_in_1.shape[0]), k=num_of_pairs)
+    # else:
+    #     random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
 
-    # generate num_of_pairs random numbers in range
-    # random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
-    # print(random_index)
+    # # generate num_of_pairs random numbers in range
+    # # random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
+    # # print(random_index)
+    # loss_neg = dist_nn12[torch.arange(B * N),
+    #                          torch.randint(0, topM, (B * N, ))]
+    # # select samples according to the random generated index
+    # matches_in_1_random_selected = [matches_in_1[index] for index in random_index]
+    # matches_in_2_random_selected = [matches_in_2[index] for index in random_index]
+    # matches_in_1_random_selected = np.array(matches_in_1_random_selected)
+    # matches_in_2_random_selected = np.array(matches_in_2_random_selected)
+    rand_idx = torch.randint(0,matches_in_1.shape[0],(num_of_pairs,))
+    matches_in_1_random_selected = matches_in_1[rand_idx]
+    matches_in_2_random_selected = matches_in_2[rand_idx]
 
-    # select samples according to the random generated index
-    matches_in_1_random_selected = [matches_in_1[index] for index in random_index]
-    matches_in_2_random_selected = [matches_in_2[index] for index in random_index]
-    matches_in_1_random_selected = np.array(matches_in_1_random_selected)
-    matches_in_2_random_selected = np.array(matches_in_2_random_selected)
-
-    # print(matches_in_1_random_selected)
-    # print(matches_in_2_random_selected)
-
-    return matches_in_1_random_selected, matches_in_2_random_selected
+    # return matches_in_1_random_selected, matches_in_2_random_selected
+    return {'a': matches_in_1_random_selected[None, ...], 'b':matches_in_2_random_selected[None, ...]}
 
 def random_select_negative_matches_whole_image(matches_in_1, matches_in_2, h=768, w=1024, num_of_pairs=1024):
     if matches_in_1.shape[0] < num_of_pairs/2:

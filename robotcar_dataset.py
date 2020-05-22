@@ -110,16 +110,10 @@ class RobotcarDataset(Dataset):
         if self.transform:
             img_a = self.default_transform(Image.open(img_a))
             img_b = self.default_transform(Image.open(img_b))
-        pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
-        # modified: if use hard
-        # neg_a, neg_b = random_select_negative_matches_whole_image(a, b, h=self._data['scale']*img_a.shape[1], w=self._data['scale']*img_a.shape[2] ,num_of_pairs=self._data['num_matches'])
-        corres_ab_pos = {'a': pos_a, 'b': pos_b}
-        # modified: if use hard
-        # corres_ab_neg = {'a':neg_a, 'b':neg_b}
-        # modified: if use hard
-        # return (img_a, img_b), (corres_ab_pos,corres_ab_neg)
+        # pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
+        # modified: return all pos matches
+        corres_ab_pos = {'a': a, 'b': b}
         return (img_a, img_b), (corres_ab_pos)
-        # return (img_a, img_b), corres_ab_pos
 
     def __len__(self):
         assert len(self._data['image_pairs_name']['a']) == len(self._data['image_pairs_name']['b'])
