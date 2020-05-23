@@ -33,6 +33,8 @@ class RobotcarDataset(Dataset):
                  pair_info_folder: str,
                  name: str = None,
                  queries_folder: str = None,
+                 robotcar_weather_all: bool = True,
+                 robotcar_weather: str = None,
                  transform=None,
                  img_scale: int = None,
                  num_matches: int = None
@@ -49,22 +51,31 @@ class RobotcarDataset(Dataset):
             'scale': img_scale,
             'num_matches': num_matches
         }
-        self.load_pair_file_names()
+        self.load_pair_file_names(robotcar_weather, robotcar_weather_all)
         self.load_image_pairs()
         self.transform = transform
         self.default_transform = self.default_transform()
 
-    def load_pair_file_names(self):
+    def load_pair_file_names(self, robotcar_weather, robotcar_weather_all):
         # load image pairs for one slice
         # /public_data/robotcar/corrrespondence
         pair_file_roots = Path(self._data['root'], self._data['name'], self._data['pair_info_folder'])
         # /public_data/robotcar/corrrespondence/*.mat
-        suffix = '*.mat'
+        if not robotcar_weather_all:
+            suffix = 'correspondence_run1_overcast-reference_run2_{}*.mat'.format(robotcar_weather)
+        else:
+            suffix = '*.mat'
         pair_files = glob(str(Path(pair_file_roots, suffix)))
         if not len(pair_files):
             raise Exception('No correspondence file found at {}'.format(pair_file_roots))
-        print('>> Found {} image pairs for Robotcar dataset'.format(len(pair_files)))
+        if not robotcar_weather_all:
+            print('>> Found {} image pairs for weather {}'.format(len(pair_files), robotcar_weather))
+        else:
+            print('>> Found {} image pairs for Robotcar dataset'.format(len(pair_files)))
+        
         self._data['pair_file_names'] = pair_files
+
+# 
 
     def load_image_pairs(self):
         N = len(self._data['pair_file_names'])  # number of image pairs

@@ -11,24 +11,27 @@ from glob import glob
 import wandb
 parser = argparse.ArgumentParser()
 
+# dataset arguments
+parser.add_argument('--dataset_name', type=str, default='cmu')
 parser.add_argument('--dataset_root',
                     type=str,
                     default='/local/home/lixxue/gnnet/gn_net_data_tiny')
-parser.add_argument('--dataset_name', type=str, default='cmu')
+parser.add_argument('--save_root',
+                    type=str,
+                    default='/local/home/lixxue/gnnet/checkpoint')
 parser.add_argument('--dataset_image_folder', type=str, default='images')
 parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
+
+# cmu arguments
 parser.add_argument('--all_slice', type=bool, default=False)
 parser.add_argument('--slice', type=int, default=6)
-parser.add_argument('--transform', type=bool, default=True)
-parser.add_argument('--start_epoch', type=int, default=0)
-parser.add_argument('--total_epochs', type=int, default=50)
-parser.add_argument('--log_interval', type=int, default=100)
-parser.add_argument('--validation_frequency', type=int, default=10)
-parser.add_argument('--init',
-                    type=bool,
-                    default=False,
-                    help="Initialize the network weights")
+
+# robotcar arguments
+parser.add_argument('--robotcar_all_weather', type=bool, default=False)
+parser.add_argument('--robotcar_weather', type=str, default='sun')
+
+# learning arguments
 parser.add_argument('--batch_size',
                     '-b',
                     type=int,
@@ -49,14 +52,30 @@ parser.add_argument('--scale',
                     type=int,
                     default=2,
                     help="Scaling factor for input image")
-parser.add_argument('--save_root',
-                    type=str,
-                    default='/local/home/lixxue/gnnet/checkpoint')
+parser.add_argument('--weight_decay', type=float, default=0.01)
+parser.add_argument('--transform', type=bool, default=True)
+parser.add_argument('--start_epoch', type=int, default=0)
+parser.add_argument('--total_epochs', type=int, default=50)
+parser.add_argument('--log_interval', type=int, default=100)
+parser.add_argument('--validation_frequency', type=int, default=1)
+parser.add_argument('--init',
+                    type=bool,
+                    default=False,
+                    help="Initialize the network weights")
+parser.add_argument('--resume_checkpoint', type=str, default=None)
+
+# loss hyperparameters
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
 parser.add_argument('--contrastive_lamda', type=float, default=1)
-parser.add_argument('--weight_decay', type=float, default=0.01)
 parser.add_argument('--num_matches', type=float, default=1024)
-parser.add_argument('--resume_checkpoint', type=str, default=None)
+parser.add_argument('--margin',
+                    type=float,
+                    default=1,
+                    help="triplet loss margin")
+parser.add_argument('--e1_lamda', type=float, default=1)
+parser.add_argument('--e2_lamda', type=float, default=1)
+
+# upsampling
 parser.add_argument('--nearest',
                     type=bool,
                     default=True,
@@ -65,35 +84,37 @@ parser.add_argument('--bilinear',
                     type=bool,
                     default=False,
                     help="upsampling mode")
-parser.add_argument('--margin',
-                    type=float,
-                    default=1,
-                    help="triplet loss margin")
+
+# debug arguments
 parser.add_argument('--validate',
                     type=bool,
                     default=True,
                     help="validate during training or not")
-parser.add_argument('--e1_lamda', type=float, default=1)
-parser.add_argument('--e2_lamda', type=float, default=1)
 parser.add_argument('--notes', type=str, default=None)
+
 
 args = parser.parse_args()
 
+# visulaization
 wandb.init(config=args, project="gn_net_workstation")
 wandb.config["more"] = "custom"
 
-pair_file_roots1 = Path(args.dataset_root, args.dataset_name,
-                        args.pair_info_folder)
-# /public_data/cmu/corrrespondence/*.mat
+# Just for dataset dividing
+pair_file_roots1 = Path(args.dataset_root, args.dataset_name, args.pair_info_folder)
 if args.dataset_name == 'cmu' and args.all_slice == False:
     suffix1 = 'correspondence_slice{}*.mat'.format(args.slice)
-else:
+elif args.dataset_name == 'cmu' and args.all_slice == True:
     suffix1 = '*.mat'
+elif args.dataset_name == 'robotcar' and args.robotcar_all_weather == True:
+    suffix1 = '*.mat'
+else:
+    suffix1 = 'correspondence_run1_overcast-reference_run2_{}*.mat'.format(args.robotcar_weather)
 pair_files1 = glob(str(Path(pair_file_roots1, suffix1)))
 if not len(pair_files1):
     raise Exception(
         'No correspondence file found at {}'.format(pair_file_roots1))
 
+# spilt dataset
 num_dataset = len(pair_files1)
 num_valset = round(0.1 * num_dataset)
 num_trainset = num_dataset - num_valset
@@ -127,6 +148,8 @@ else:
                               image_folder=args.dataset_image_folder,
                               pair_info_folder=args.pair_info_folder,
                               queries_folder=args.query_folder,
+                              robotcar_weather_all=args.robotcar_all_weather,
+                              robotcar_weather=args.robotcar_weather,
                               transform=args.transform,
                               img_scale=args.scale,
                               num_matches=args.num_matches)
