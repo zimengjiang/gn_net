@@ -75,6 +75,7 @@ parser.add_argument('--validate',
                     help="validate during training or not")
 parser.add_argument('--e1_lamda', type=float, default=1)
 parser.add_argument('--e2_lamda', type=float, default=1)
+parser.add_argument('--notes', type=str, default=None)
 
 args = parser.parse_args()
 

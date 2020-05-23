@@ -11,7 +11,7 @@ python run.py \
 --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \
 --gn_loss_lamda '0.01' \
 --contrastive_lamda '1' \
---lr 0 \
+--lr 1e-5 \
 --validate 'True' \
 --schedule_lr_fraction '1' \
 --margin '0.5'

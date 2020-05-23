@@ -140,24 +140,14 @@ class GNLoss(nn.Module):
         gnloss_level = []
         loss_pos_mean_level = []
         loss_neg_mean_level = []
-        num_matches_list = [500, 1000, 2000, 4000]
+        # num_matches_list = [500, 1000, 2000, 4000]
 
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
         for i in range(len(F_a)):
             level = np.power(2, 3 - i)
-            # if (i == 3):
-            #     fa_sliced_pos = fa_4_sliced
-            #     fb_sliced_pos = fb_4_sliced
-            # else:
-            positive_matches_sampled = random_select_positive_matches(positive_matches['a'], positive_matches['b'], num_of_pairs=num_matches_list[i])
-            fa_sliced_pos = extract_features(F_a[i], positive_matches_sampled['a'] / (level * self.img_scale)) #(level*4)) #TODO: use bilinear interpolation in extract_features
-            # fa_sliced_pos = extract_features(F_a[i], positive_matches['a'] / (level * self.img_scale)) #(level*4)) #TODO: use bilinear interpolation in extract_features
-            # fb_sliced_pos = extract_features(F_b[i], positive_matches['b'] / (level * self.img_scale)) #(level*4))
-            # fa_sliced_neg = self.extract_features(F_a[i], negative_matches['a'] / level) # don't //4 here. negative_matches are in the same scale as known_matches//4
-            # fb_sliced_neg = self.extract_features(F_b[i], negative_matches['b'] / level)
-            # fa_sliced_neg = extract_features(F_a[i], negative_matches['a'] / level) #(level*self.img_scale)) img_scale is divided inside pair selector
-            # fb_sliced_neg = extract_features(F_b[i], negative_matches['b'] / level) #(level*self.img_scale))
-            
+            positive_matches_sampled = random_select_positive_matches(positive_matches['a'], positive_matches['b'], num_of_pairs=self.num_matches)
+            fa_sliced_pos = extract_features(F_a[i], positive_matches_sampled['a'] / (level * self.img_scale))
+
             '''compute contrastive loss'''
             # loss of positive pairs:
             # loss_pos = self.compute_contrastive_loss(fa_sliced_pos, fb_sliced_pos,pos=True)
@@ -166,9 +156,9 @@ class GNLoss(nn.Module):
             # loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, pos=False)
 
             '''compute triplet loss'''
-            # loss_triplet = self.compute_triplet_loss(fa_sliced_pos, fb_sliced_pos, fb_sliced_neg)
             topM = np.clip(64*np.exp(-epoch*0.6/1000), a_min = 5, a_max=None)
-            loss_triplet, loss_pos_mean, loss_neg_mean = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches_sampled, self.img_scale*level, topM = int(topM), dist_threshold=0.2, train_or_val=train_or_val)
+            loss_triplet, loss_pos_mean, loss_neg_mean = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches_sampled, self.img_scale*level, topM = int(topM), dist_threshold=0.2, train_or_val=train_or_val, level=level)            
+            
             # to keep very level the same loss scale
             # loss_triplet /= (i+1)
             
@@ -177,6 +167,7 @@ class GNLoss(nn.Module):
             loss_neg_mean_level.append(loss_neg_mean)
 
             '''compute gn loss'''
+            # TODO:
             loss_gn_all = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches_sampled['b'] / (level * self.img_scale), level, train_or_val)  # //4
             loss_gn = loss_gn_all[0]
             gnloss_level.append(loss_gn)

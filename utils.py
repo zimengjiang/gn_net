@@ -154,31 +154,19 @@ def batch_pairwise_cos_distances(x, y, batched):
     Output: dist is a bxNxM matrix where dist[b,i,j] is the square norm between x[b,i,:] and y[b,j,:]
     i.e. dist[i,j] = ||x[b,i,:]-y[b,j,:]||^2                                                         
     '''
-    x = x.to(torch.float32)
-    y = y.to(torch.float32)
-
-    # Normalize descriptors
-    #   x_norm = torch.norm(x, p=2, dim=-1, keepdim=True)
-    #   mask = x_norm==0.0
-    #   x_norm = x_norm + mask*1e-16
-    #   y_norm = torch.norm(y, p=2, dim=-1, keepdim=True)
-    #   mask = y_norm==0.0
-    #   y_norm = y_norm + mask*1e-16
-    #   x = x / x_norm
-    #   y = y / y_norm
-    x = normalize_(x)
-    y = normalize_(y)
+    # x = normalize_(x)
+    # y = normalize_(y)
     if batched:
-        # x = normalize_(x)
-        # y = normalize_(y)
+        x = normalize_(x)
+        y = normalize_(y)
         y_t = y.permute(0, 2, 1).contiguous()
         cos_simi = torch.bmm(x, y_t)
         return 1 - cos_simi
     else:
-        # cos_simi = F.cosine_similarity(x, y, dim=-1, eps=1e-16)
+        cos_simi = F.cosine_similarity(x, y, dim=-1, eps=1e-16)
+        return 1 - cos_simi
         # return 1 - cos_simi
-        return 1 - (x * y).sum(-1)
-        
+        # return 1 - (x * y).sum(-1)  
 
 def batched_eye_like(x, n):
     """Create a batch of identity matrices.
@@ -205,6 +193,22 @@ def extract_features(f, indices):
         else:
             f_2d = torch.cat((f_2d, f_bth), dim=1)
     return f_2d.transpose(0, 1).type(torch.float32)
+
+def extract_features_int(f, indices):
+    '''
+    f: BxCxHxW
+    indicies: BxNx2
+    '''
+    b, c, h, w = f.shape
+    N = indices.shape[1]
+    f_permuted = f.permute(1,0,2,3)
+    f_2d = f_permuted.reshape((c, b*h*w))
+    f_idx_2d = np.zeros((b*N))
+    for b_th in range(f.shape[0]):
+        m = indices[b_th]
+        f_idx_2d[b_th*(N):(b_th+1)*N] = b_th*w*h + m[:,1]*w + m[:,0]
+    f_idx_2d = torch.floor(torch.from_numpy(f_idx_2d)).type(torch.LongTensor).to(f_2d.device)
+    return torch.index_select(f_2d, -1, f_idx_2d).transpose(0,1)
 
 
 def bilinear_interpolation(grid, idx):
@@ -332,13 +336,13 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         super(MyFunctionNegativeTripletSelector, self).__init__()
         self.margin = margin
 
-    def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold, train_or_val):
+    def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold, train_or_val, level):
         """
         embedding1: feature map of image 1, BxCxHxW
         embedding2: feature map of image 2, BxCxHxW
         match_pos: known positive matches, {'a':BxNx2,'b':BxNx2}
         topM: sort the negatives for each sample by loss in decreasing order and sample randomly over the top M
-        dist_threshold: minimal sqaured distance between anchor and neg
+        dist_threshold: (dist_threshold*H)^2 is the minimal sqaured distance between anchor and neg
         """
 
         a1 = match_pos['a'] / scale  # anchors in img1
@@ -349,16 +353,10 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         e1_sliced_ = extract_features(embedding1, a1)  #(BxN)*C
         e1_sliced = e1_sliced_.reshape((B, N, C))  # checked BxNxC
         e2_sliced_ = extract_features(embedding2, a2)
-        # mean_e1 = torch.mean(e1_sliced_, dim=0)
-        # e2_sliced = e2_sliced.reshape((B, N, C)) # checked
-        # reshape embeddings to (B,H*W,C)
-        # e1 = embedding1.reshape((B,C,-1)) # checked
-        # e1 = e1.transpose(1,2) # checked
+
+
         e2 = embedding2.reshape((B, C, -1))  # checked
-        e2 = e2.transpose(1, 2)  # checked
-        # e2_long = e2.reshape(-1,C)
-        # e2_mean = torch.mean(e2_long,dim=0)
-        # feature distance matrix from anchor1 to image 2
+        e2 = e2.transpose(1, 2)  # checked 
 
         # if normalized L2 norm then euclidean distance
         # e1_sliced = F.normalize(e1_sliced, p=2, dim=-1)
@@ -367,12 +365,11 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # e1_sliced_ = F.normalize(e1_sliced_, p=2, dim=-1)
         # f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
 
+
+        # TODO:
         f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,
                                                       e2,
                                                       batched=True)
-        # feature distance matrix from anchor2 to image 1
-        # f_dist_a2_img1 = batch_pairwise_squared_distances(e2_sliced,e1) # dim: B x #a2 x #pixels in img1
-        # get topM hardest samples, might loose it to semi hardest
         idx_1d = torch.arange(H * W)
         idx_x = idx_1d % W
         idx_y = idx_1d // W
@@ -383,33 +380,37 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         f_dist_a1_img2[mask_12] = 1e4
 
         dist_nn12, idx_in_2 = f_dist_a1_img2.topk(topM, dim=-1, largest=False)
-        # dist_nn21, idx_in_1 = f_dist_a2_img1.topk(topM, dim=-1, largest=False)
-        ### compute pixel distance
-        # y_in_2 = idx_in_2 // W # row idx , idx = y*W + x
-        # x_in_2 = idx_in_2 % W # col idx
-        # xy_in_2 = torch.stack((x_in_2, y_in_2),dim=-1)
-        # y_in_1 = idx_in_1 // W # row idx , idx = y*W + x
-        # x_in_1 = idx_in_1 % W # col idx
-        # xy_in_1 = torch.stack((x_in_1, y_in_1),dim=-1)
-        # a1_rep = a1.repeat(1,1,1,topM)
-        # a1_rep = a1_rep.reshape(B,N,topM,2)
-        # a2_rep = a2.repeat(1,1,1,topM)
-        # a2_rep = a2_rep.reshape(B,N,topM,2)
-        # dist_nn12_ok = dist_nn12_ok.reshape(B*N,-1)
-        # dist_nn12[mask_in_2]=float('inf')
         dist_nn12 = dist_nn12.reshape(B * N, -1)
+        idx_in_2 = idx_in_2.reshape(B * N, -1)
 
-        loss_neg = dist_nn12[torch.arange(B * N),
-                             torch.randint(0, topM, (B * N, ))]
+        # for visualization
+        sampled_neg_idx = torch.randint(0, topM, (B * N, ))
+        sampled_neg_idx_in_img2 = idx_in_2[torch.arange(B * N),sampled_neg_idx]
+        #todo:
+        sampled_neg_idx_x = sampled_neg_idx_in_img2 % W 
+        sampled_neg_idx_y = sampled_neg_idx_in_img2 // W
+        sampled_neg_idx_xy = torch.stack((sampled_neg_idx_x,sampled_neg_idx_y),dim=1).type(torch.LongTensor)
+        e2_sliced_neg = extract_features_int(embedding2, sampled_neg_idx_xy[None, ...])
+        e2_sliced_neg_norm_mean = torch.mean(torch.norm(e2_sliced_neg, p=2, dim=-1))
+        e1_sliced_pos_norm_mean = torch.mean(torch.norm(e1_sliced_, p=2, dim=-1))
+        e2_sliced_pos_norm_mean = torch.mean(torch.norm(e2_sliced_, p=2, dim=-1))
+        wandb.log({"feature_norm_a1_level{}".format(level): e1_sliced_pos_norm_mean,
+        "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
+        "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
 
-        # loss_neg = 0 * loss_neg
+        loss_neg = dist_nn12[torch.arange(B * N),sampled_neg_idx]
+        # loss_neg = 0
+        # e1_sliced_ = normalize_(e1_sliced_)
+        # e2_sliced_ = normalize_(e2_sliced_)
         # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
         loss_pos = batch_pairwise_cos_distances(e1_sliced_,
                                                 e2_sliced_,
                                                 batched=False)
         '''randomly sample a negative'''
         mdist = torch.clamp(loss_pos - loss_neg + self.margin, min=0.0)
+        # TODO:
         loss_pos_mean = torch.mean(loss_pos, dim=-1)
+        # TODO:
         loss_neg_mean = torch.mean(loss_neg, dim=-1)
         wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
         '''mean over all negative pairs'''
