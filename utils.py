@@ -363,13 +363,13 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # e2 = F.normalize(e2, p = 2, dim=-1)
         # e2_sliced_ = F.normalize(e2_sliced_, p=2, dim=-1)
         # e1_sliced_ = F.normalize(e1_sliced_, p=2, dim=-1)
-        # f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
+        f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
 
 
         # TODO:
-        f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,
-                                                      e2,
-                                                      batched=True)
+        # f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,
+                                                    #   e2,
+                                                    #   batched=True)
         idx_1d = torch.arange(H * W)
         idx_x = idx_1d % W
         idx_y = idx_1d // W
@@ -398,16 +398,19 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
         "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
 
-        loss_neg = dist_nn12[torch.arange(B * N),sampled_neg_idx]
+        D_feat_neg = torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx])
+        loss_neg = torch.clamp(self.margin - D_feat_neg, min=0.0)
+        loss_neg = loss_neg**2
         # loss_neg = 0
         # e1_sliced_ = normalize_(e1_sliced_)
         # e2_sliced_ = normalize_(e2_sliced_)
-        # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
-        loss_pos = batch_pairwise_cos_distances(e1_sliced_,
-                                                e2_sliced_,
-                                                batched=False)
+        loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
+        # loss_pos = batch_pairwise_cos_distances(e1_sliced_,
+        #                                         e2_sliced_,
+        #                                         batched=False)
         '''randomly sample a negative'''
-        mdist = torch.clamp(loss_pos - loss_neg + self.margin, min=0.0)
+        # mdist = torch.clamp(loss_pos - loss_neg + self.margin, min=0.0)
+        mdist = loss_neg + loss_pos
         # TODO:
         loss_pos_mean = torch.mean(loss_pos, dim=-1)
         # TODO:

@@ -90,7 +90,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
             save_checkpoint(model.state_dict(), False, save_root, str(epoch))
         print(message)
 
-        wandb.log({"epoch": epoch, "total_train_loss": train_loss, "train_triplet_loss": total_contras_loss, "train_gn_loss": total_gnloss, "total_val_loss": val_loss, "val_triplet_loss": val_contras_loss, "val_gn_loss": val_gnloss})
+        wandb.log({"epoch": epoch, "total_train_loss": train_loss, "train_contrastive_loss": total_contras_loss, "train_gn_loss": total_gnloss, "total_val_loss": val_loss, "val_triplet_loss": val_contras_loss, "val_gn_loss": val_gnloss})
         # plt.figure(figsize=(12,8))
         # # plt.subplot(2, 2, 1)
         # plt.title("all_loss")
