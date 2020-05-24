@@ -228,7 +228,7 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
                 # for c in corres_ab:
                 #     c = {key: c[key].to(device) for key in c}
 
-        optimizer.zero_grad()
+
         outputs = model(*img_ab)
 
         if type(outputs) not in (tuple, list):
@@ -267,7 +267,8 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
             total_gnloss_level[i] += gnloss_level[i]
             total_loss_pos_mean_level[i] += loss_pos_mean_level[i]
             total_loss_neg_mean_level[i] += loss_neg_mean_level[i]
-
+            
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 

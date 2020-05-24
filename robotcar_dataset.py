@@ -103,11 +103,11 @@ class RobotcarDataset(Dataset):
 
     def default_transform(self):
         return transforms.Compose([
-            transforms.Resize((768 // self._data['scale'], 1024 // self._data['scale'])),
+            transforms.Resize((1024 // self._data['scale'], 1024 // self._data['scale'])),
             # check image dim, resize (H, W)?  just for fast debugging
             transforms.ToTensor(),
             transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                mean=[0.6103017,0.5997312,0.5760877], std=[0.25560468,0.25367427,0.25165442]), # all image in robotcar
         ])
 
     '''

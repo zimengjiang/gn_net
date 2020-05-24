@@ -9,13 +9,15 @@ from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
 import wandb
+import numpy as np
+
 parser = argparse.ArgumentParser()
 
 # dataset arguments
-parser.add_argument('--dataset_name', type=str, default='cmu')
+parser.add_argument('--dataset_name', type=str, default='robotcar')
 parser.add_argument('--dataset_root',
                     type=str,
-                    default='/local/home/lixxue/gnnet/gn_net_data_tiny')
+                    default='/home/lechen/gnnet/robotcar_data')
 parser.add_argument('--save_root',
                     type=str,
                     default='/local/home/lixxue/gnnet/checkpoint')
@@ -28,7 +30,7 @@ parser.add_argument('--all_slice', type=bool, default=False)
 parser.add_argument('--slice', type=int, default=6)
 
 # robotcar arguments
-parser.add_argument('--robotcar_all_weather', type=bool, default=False)
+parser.add_argument('--robotcar_all_weather', type=bool, default=True)
 parser.add_argument('--robotcar_weather', type=str, default='sun')
 
 # learning arguments
@@ -40,7 +42,7 @@ parser.add_argument('--batch_size',
 parser.add_argument('--num_workers',
                     '-n',
                     type=int,
-                    default=1,
+                    default=16,
                     help="Number of workers")
 parser.add_argument('--lr', type=float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency',
@@ -50,7 +52,7 @@ parser.add_argument('--schedule_lr_frequency',
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale',
                     type=int,
-                    default=2,
+                    default=4,
                     help="Scaling factor for input image")
 parser.add_argument('--weight_decay', type=float, default=0.01)
 parser.add_argument('--transform', type=bool, default=True)
@@ -78,11 +80,11 @@ parser.add_argument('--e2_lamda', type=float, default=1)
 # upsampling
 parser.add_argument('--nearest',
                     type=bool,
-                    default=False,
+                    default=True,
                     help="upsampling mode")
 parser.add_argument('--bilinear',
                     type=bool,
-                    default=True,
+                    default=False,
                     help="upsampling mode")
 
 # debug arguments
@@ -173,40 +175,42 @@ if args.validate:
                             num_workers=args.num_workers)
 else:
     val_loader = None
-'''set up the network and training parameters'''
-from network.gnnet_model import EmbeddingNet, GNNet
-from network.gn_loss import GNLoss
 
 print("****** START ****** \n")
 
-# set up model
-embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
-model = GNNet(embedding_net)
-model = model.to(device)
-if (args.resume_checkpoint):
-    model.load_state_dict(
-        torch.load(args.resume_checkpoint, map_location=torch.device(device)))
 
-# set up loss
-loss_fn = GNLoss(margin=args.margin,
-                 contrastive_lamda=args.contrastive_lamda,
-                 gn_lamda=args.gn_loss_lamda,
-                 img_scale=args.scale,
-                 e1_lamda=args.e1_lamda,
-                 e2_lamda=args.e2_lamda,
-                 num_matches=args.num_matches)
-optimizer = optim.AdamW(model.parameters(),
-                        lr=args.lr,
-                        weight_decay=args.weight_decay)
-scheduler = optim.lr_scheduler.StepLR(optimizer,
-                                      args.schedule_lr_frequency,
-                                      gamma=args.schedule_lr_fraction,
-                                      last_epoch=-1)  # optional
-n_epochs = args.total_epochs
-log_interval = args.log_interval
-save_root = args.save_root
-validation_frequency = args.validation_frequency
-init = args.init
-# fit the model
-fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs,
-    cuda, log_interval, validation_frequency, save_root, init)
+
+pop_mean = []
+pop_std0 = []
+pop_std1 = []
+
+for batch_idx, (img_ab, corres_ab) in enumerate(train_loader):
+    # shape (batch_size, 3, height, width)
+    numpy_image_a = img_ab[0].numpy()
+    numpy_image_b = img_ab[1].numpy()
+
+    # shape (3,)
+    batch_mean_a = np.mean(numpy_image_a, axis=(0,2,3))
+    batch_std0_a = np.std(numpy_image_a, axis=(0,2,3))
+    batch_std1_a = np.std(numpy_image_a, axis=(0,2,3), ddof=1)
+
+    batch_mean_b = np.mean(numpy_image_b, axis=(0,2,3))
+    batch_std0_b = np.std(numpy_image_b, axis=(0,2,3))
+    batch_std1_b = np.std(numpy_image_b, axis=(0,2,3), ddof=1)
+
+    pop_mean.append(batch_mean_a)
+    pop_std0.append(batch_std0_a)
+    pop_std1.append(batch_std1_a)
+
+    pop_mean.append(batch_mean_b)
+    pop_std0.append(batch_std0_b)
+    pop_std1.append(batch_std1_b)
+
+# shape (num_iterations, 3) -> (mean across 0th axis) -> shape (3,)
+pop_mean = np.array(pop_mean).mean(axis=0)
+pop_std0 = np.array(pop_std0).mean(axis=0)
+pop_std1 = np.array(pop_std1).mean(axis=0)
+
+print(pop_mean)
+print(pop_std0)
+print(pop_std1)

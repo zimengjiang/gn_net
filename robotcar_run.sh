@@ -12,9 +12,9 @@ python run.py \
 --contrastive_lamda '1' \
 --margin 1 \
 --scale 4 \
---total_epochs 100 \
+--total_epochs 1000 \
 --lr 1e-4 \
---schedule_lr_fraction '1' \
+--schedule_lr_fraction '0.1' \
 --weight_decay 0.02
 --validation_frequency 1  
 --notes 'euclidean pos and neg, monitor feature norm, matches for each feature level:[1024,1024,1024,1024], contrastive loss'
