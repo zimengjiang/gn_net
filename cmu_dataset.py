@@ -113,7 +113,7 @@ class CMUDataset(Dataset):
             # check image dim, resize (H, W)?  just for fast debugging
             transforms.ToTensor(),
             transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                mean=[0.3806846,0.3870135,0.37218922], std=[0.27193257,0.2855885,0.3013642]),
         ])
 
     '''

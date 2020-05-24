@@ -333,7 +333,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             # modified to print gn loss seperately
             loss_inputs += (False, )
 
-            loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2  = loss_fn(
+            loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2, loss_pos_mean_level, loss_neg_mean_level = loss_fn(
                 *loss_inputs)
             loss = loss_outputs[0] if type(loss_outputs) in (
                 tuple, list) else loss_outputs

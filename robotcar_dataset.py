@@ -107,7 +107,7 @@ class RobotcarDataset(Dataset):
             # check image dim, resize (H, W)?  just for fast debugging
             transforms.ToTensor(),
             transforms.Normalize(
-                mean=[0.6103017,0.5997312,0.5760877], std=[0.25560468,0.25367427,0.25165442]), # all image in robotcar
+                mean=[0.03001604,0.08044077,0.13968322], std=[1.0841591,1.0996625,1.1056131]), # all image in robotcar
         ])
 
     '''
