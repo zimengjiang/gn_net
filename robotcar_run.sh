@@ -2,9 +2,9 @@
 
 python run.py \
 --dataset_name 'robotcar' \
---dataset_root '/home/lechen/gnnet/robotcar_tiny' \
+--dataset_root '/home/lechen/gnnet/robotcar_data' \
 --save_root '/home/lechen/gnnet/checkpoint/checkpoint_rbc1' \
---robotcar_weather 'night' \
+--robotcar_weather 'sun' \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \
 --query_folder 'query' \
@@ -12,7 +12,7 @@ python run.py \
 --contrastive_lamda '1' \
 --margin 1 \
 --scale 4 \
---total_epochs 1000 \
+--total_epochs 200 \
 --lr 1e-4 \
 --schedule_lr_fraction '0.1' \
 --weight_decay 0.02

@@ -26,11 +26,11 @@ parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
 
 # cmu arguments
-parser.add_argument('--all_slice', type=bool, default=False)
+parser.add_argument('--all_slice', type=bool, default=True)
 parser.add_argument('--slice', type=int, default=6)
 
 # robotcar arguments
-parser.add_argument('--robotcar_all_weather', type=bool, default=True)
+parser.add_argument('--robotcar_all_weather', type=bool, default=False)
 parser.add_argument('--robotcar_weather', type=str, default='sun')
 
 # learning arguments
@@ -118,7 +118,7 @@ if not len(pair_files1):
 
 # spilt dataset
 num_dataset = len(pair_files1)
-num_valset = round(0.1 * num_dataset)
+num_valset = 0 #round(0.1 * num_dataset)
 num_trainset = num_dataset - num_valset
 print('\nnum_dataset: {} '.format(num_dataset))
 print('num_trainset: {} '.format(num_trainset))

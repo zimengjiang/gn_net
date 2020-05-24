@@ -40,12 +40,12 @@ parser.add_argument('--batch_size',
 parser.add_argument('--num_workers',
                     '-n',
                     type=int,
-                    default=1,
+                    default=16,
                     help="Number of workers")
 parser.add_argument('--lr', type=float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency',
                     type=int,
-                    default=250,
+                    default=50,
                     help='in number of iterations (0 for no schedule)')
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--scale',

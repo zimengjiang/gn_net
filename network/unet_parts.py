@@ -58,13 +58,13 @@ class Up(nn.Module):
             self.up = nn.Upsample(scale_factor=2, mode = 'nearest', align_corners=None)
             self.conv_half_channel = nn.Conv2d(in_channels,out_channels,kernel_size =  1)
             self.conv = DoubleConv(in_channels, out_channels, num_group)
-        else:
-            self.up = nn.ConvTranspose2d(in_channels , in_channels // 2, kernel_size=2, stride=2)
-            self.conv = DoubleConv(in_channels, out_channels, num_group)
+        # else:
+        #     self.up = nn.ConvTranspose2d(in_channels , in_channels // 2, kernel_size=2, stride=2)
+        #     self.conv = DoubleConv(in_channels, out_channels, num_group)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        # x1 = self.conv_half_channel(x1)
+        x1 = self.conv_half_channel(x1)
         # input is CHW
         diffY = torch.tensor([x2.size()[2] - x1.size()[2]])
         diffX = torch.tensor([x2.size()[3] - x1.size()[3]])
