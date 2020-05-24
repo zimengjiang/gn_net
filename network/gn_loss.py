@@ -97,7 +97,7 @@ class GNLoss(nn.Module):
         return e, e1, e2
 
 
-    def forward(self, F_a, F_b, positive_matches, epoch, train_or_val):
+    def forward(self, F_a, F_b, positive_matches, iteration, train_or_val):
         '''
         F_a is a list containing 4 feature maps of different shapes
         1: B x C X H/8 x W/8
@@ -156,7 +156,8 @@ class GNLoss(nn.Module):
             # loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, pos=False)
 
             '''compute triplet loss'''
-            topM = np.clip(64*np.exp(-epoch*0.6/1000), a_min = 5, a_max=None)
+            topM = np.clip(64*np.exp(-iteration*0.6/1000), a_min = 5, a_max=None)
+            print("topM: ", topM)
             loss_triplet, loss_pos_mean, loss_neg_mean = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches_sampled, self.img_scale*level, topM = int(topM), dist_threshold=0.2, train_or_val=train_or_val, level=level)            
             
             # to keep very level the same loss scale

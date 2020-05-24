@@ -10,16 +10,14 @@ python run.py \
 --validation_frequency 1 \
 --total_epochs 100 \
 --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint/robotcar' \
---validate 'True' \
 --schedule_lr_fraction '1' \
---bilinear 'True' \
---nearest 'False' \
---lr 1e-4 \
+--lr 1e-5 \
 --weight_decay 0.001 \
 --gn_loss_lamda 0 \
 --contrastive_lamda 1 \
 --margin 1 \
---notes 'euclidean pos and neg, monitor feature norm, matches for each feature level:[1024,1024,1024,1024], contrastive loss'
+--notes 'euclidean pos and neg, monitor feature norm, matches for each feature level:[1024,1024,1024,1024], contrastive loss,
+topM=64, transpose conv'
 # --num_matches '4000' 
 # --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
 # --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \ 

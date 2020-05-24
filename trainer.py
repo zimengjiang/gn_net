@@ -51,8 +51,9 @@ def fit(train_loader,
 
 
     wandb.watch(model, log="all")
-
+    iteration = 0
     for epoch in range(start_epoch, n_epochs):
+        iteration = epoch*len(train_loader)
         # scheduler.step()
         '''
         UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. 
@@ -71,7 +72,8 @@ def fit(train_loader,
             log_interval,
             save_root,
             epoch,
-            init)
+            init,
+            iteration)
         train_x.append(epoch + 1)
         train_y.append(train_loss)
         train_y_contras.append(total_contras_loss)
@@ -119,12 +121,12 @@ def fit(train_loader,
             "total_train_loss": train_loss,
             "train_triplet_loss": total_contras_loss,
             "train_gn_loss": total_gnloss,
-            "train_triplet_level8": train_triplet_level[0],
-            "train_triplet_level4": train_triplet_level[1],
-            "train_triplet_level2": train_triplet_level[2],
-            "train_triplet_level1": train_triplet_level[3],
-            "train_gn_level8": train_gn_level[0],
-            "train_gn_level4": train_gn_level[1],
+            "train_contrastive_level4": train_triplet_level[0],
+            "train_contrastive_level3": train_triplet_level[1],
+            "train_contrastive_level2": train_triplet_level[2],
+            "train_contrastive_level1": train_triplet_level[3],
+            "train_gn_level4": train_gn_level[0],
+            "train_gn_level3": train_gn_level[1],
             "train_gn_level2": train_gn_level[2],
             "train_gn_level1": train_gn_level[3],
             "train_gn_e1": train_e1,
@@ -186,7 +188,7 @@ def fit(train_loader,
 
 
 def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
-                log_interval, save_root, epoch, init):
+                log_interval, save_root, epoch, init, iteration):
     # initialize network parameters, oscillates a lot here. not good
     if init and epoch == 0:
         for m in model.modules():
@@ -228,7 +230,7 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
                 # for c in corres_ab:
                 #     c = {key: c[key].to(device) for key in c}
 
-
+        optimizer.zero_grad()
         outputs = model(*img_ab)
 
         if type(outputs) not in (tuple, list):
@@ -243,7 +245,8 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
             loss_inputs += corres_ab
         
         # modified for triplet loss negative part
-        loss_inputs += (epoch, )
+        loss_inputs += (iteration, ) # modified from epoch
+        iteration += 1
         # modified to print gn loss seperately
         loss_inputs += (True, )
 
@@ -267,8 +270,7 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
             total_gnloss_level[i] += gnloss_level[i]
             total_loss_pos_mean_level[i] += loss_pos_mean_level[i]
             total_loss_neg_mean_level[i] += loss_neg_mean_level[i]
-            
-        optimizer.zero_grad()
+
         loss.backward()
         optimizer.step()
 

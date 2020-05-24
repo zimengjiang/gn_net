@@ -82,7 +82,7 @@ parser.add_argument('--nearest',
                     help="upsampling mode")
 parser.add_argument('--bilinear',
                     type=bool,
-                    default=True,
+                    default=False,
                     help="upsampling mode")
 
 # debug arguments

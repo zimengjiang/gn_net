@@ -46,7 +46,8 @@ class Up(nn.Module):
 
     def __init__(self, in_channels, out_channels, num_group, bilinear=False, nearest=False):
         super().__init__()
-
+        self.bilinear = bilinear
+        self.nearest = nearest
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
             # self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
@@ -54,7 +55,7 @@ class Up(nn.Module):
             self.up = nn.Upsample(scale_factor=2, mode = 'bilinear', align_corners=True)
             self.conv_half_channel = nn.Conv2d(in_channels,out_channels,kernel_size=1)
             self.conv = DoubleConv(in_channels, out_channels, num_group)
-        if nearest:
+        elif nearest:
             self.up = nn.Upsample(scale_factor=2, mode = 'nearest', align_corners=None)
             self.conv_half_channel = nn.Conv2d(in_channels,out_channels,kernel_size =  1)
             self.conv = DoubleConv(in_channels, out_channels, num_group)
@@ -64,7 +65,8 @@ class Up(nn.Module):
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        # x1 = self.conv_half_channel(x1)
+        if self.bilinear or self.nearest:
+            x1 = self.conv_half_channel(x1)
         # input is CHW
         diffY = torch.tensor([x2.size()[2] - x1.size()[2]])
         diffX = torch.tensor([x2.size()[3] - x1.size()[3]])
