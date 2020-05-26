@@ -1,7 +1,7 @@
 #!/bin/bash
 
 python run.py \
---dataset_root '/local/home/lixxue/Downloads/gn_net_data' \
+--dataset_root '/home/lechen/gnnet/gn_net_data' \
 --dataset_name 'cmu' \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \

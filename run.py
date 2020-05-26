@@ -25,7 +25,7 @@ parser.add_argument('--query_folder', type=str, default='query')
 
 # cmu arguments
 parser.add_argument('--all_slice', type=bool, default=False)
-parser.add_argument('--slice', type=int, default=6)
+parser.add_argument('--slice', type=int, default=7)
 
 # robotcar arguments
 parser.add_argument('--robotcar_all_weather', type=bool, default=False)
@@ -68,17 +68,19 @@ parser.add_argument('--resume_checkpoint', type=str, default=None)
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
 parser.add_argument('--contrastive_lamda', type=float, default=1)
 parser.add_argument('--num_matches', type=float, default=1024)
+parser.add_argument('--margin_pos', type=float, default=0.2)
+parser.add_argument('--margin_neg', type=float, default=1)
 parser.add_argument('--margin',
                     type=float,
                     default=1,
                     help="triplet loss margin")
 parser.add_argument('--e1_lamda', type=float, default=1)
-parser.add_argument('--e2_lamda', type=float, default=1)
+parser.add_argument('--e2_lamda', type=float, default=2/7)
 
 # upsampling
 parser.add_argument('--nearest',
                     type=bool,
-                    default=False,
+                    default=True,
                     help="upsampling mode")
 parser.add_argument('--bilinear',
                     type=bool,
@@ -188,13 +190,15 @@ if (args.resume_checkpoint):
         torch.load(args.resume_checkpoint, map_location=torch.device(device)))
 
 # set up loss
-loss_fn = GNLoss(margin=args.margin,
-                 contrastive_lamda=args.contrastive_lamda,
-                 gn_lamda=args.gn_loss_lamda,
-                 img_scale=args.scale,
-                 e1_lamda=args.e1_lamda,
-                 e2_lamda=args.e2_lamda,
-                 num_matches=args.num_matches)
+loss_fn = GNLoss(margin_pos=args.margin_pos, 
+                margin_neg=args.margin_neg, 
+                margin=args.margin,
+                contrastive_lamda=args.contrastive_lamda,
+                gn_lamda=args.gn_loss_lamda,
+                img_scale=args.scale,
+                e1_lamda=args.e1_lamda,
+                e2_lamda=args.e2_lamda,
+                num_matches=args.num_matches)
 optimizer = optim.AdamW(model.parameters(),
                         lr=args.lr,
                         weight_decay=args.weight_decay)

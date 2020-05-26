@@ -258,6 +258,12 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (
             tuple, list) else gnloss_outputs
 
+        wandb.log({
+            "total_loss - iteration": loss, 
+            "contrastive_loss - iteration": contras_loss,
+            "gn_loss - iteration": gnloss
+        })
+
 
         total_loss += loss.item()
         total_contras_loss += contras_loss.item()

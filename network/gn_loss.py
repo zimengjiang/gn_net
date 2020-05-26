@@ -17,11 +17,13 @@ class GNLoss(nn.Module):
     GN loss function.
     '''
 
-    def __init__(self, margin=1, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2, e1_lamda = 1, e2_lamda = 2/7, num_matches=1024):
+    def __init__(self, margin_pos=0.2, margin_neg=1, margin=1, contrastive_lamda = 100, gn_lamda=0.3, img_scale=2, e1_lamda = 1, e2_lamda = 2/7, num_matches=1024):
         super(GNLoss, self).__init__()
         self.margin = margin
+        self.margin_pos = margin_pos
+        self.margin_neg = margin_neg
         # self.pair_selector = MyHardNegativePairSelector()
-        self.pair_selector = MyFunctionNegativeTripletSelector(margin=self.margin)
+        self.pair_selector = MyFunctionNegativeTripletSelector(margin_pos=self.margin_pos, margin_neg=self.margin_neg, margin=self.margin)
         self.gn_lamda = gn_lamda
         self.contrastive_lamda = contrastive_lamda
         self.img_scale = img_scale  # original colored image is scaled by a factor img_scale.
@@ -156,8 +158,9 @@ class GNLoss(nn.Module):
             # loss_neg = self.compute_contrastive_loss(fa_sliced_neg, fb_sliced_neg, pos=False)
 
             '''compute triplet loss'''
-            topM = np.clip(64*np.exp(-iteration*0.6/1000), a_min = 5, a_max=None)
-            print("topM: ", topM)
+            # topM = np.clip(64*np.exp(-iteration*0.6/1000), a_min = 5, a_max=None)
+            topM = np.clip(300*np.exp(-iteration*0.6/10000), a_min = 5, a_max=None)
+            # print("topM: ", topM)
             loss_triplet, loss_pos_mean, loss_neg_mean = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches_sampled, self.img_scale*level, topM = int(topM), dist_threshold=0.2, train_or_val=train_or_val, level=level)            
             
             # to keep very level the same loss scale

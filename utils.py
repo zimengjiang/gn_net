@@ -332,9 +332,11 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
     negative_selection_fn should take array of loss_values for a given anchor-positive pair and all negative samples
     and return a negative index for that pair
     """
-    def __init__(self, margin):
+    def __init__(self, margin_pos, margin_neg, margin):
         super(MyFunctionNegativeTripletSelector, self).__init__()
         self.margin = margin
+        self.margin_pos = margin_pos
+        self.margin_neg = margin_neg
 
     def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold, train_or_val, level):
         """
@@ -399,12 +401,15 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
 
         D_feat_neg = torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx])
-        loss_neg = torch.clamp(self.margin - D_feat_neg, min=0.0)
+        # loss_neg = torch.clamp(self.margin - D_feat_neg, min=0.0)
+        loss_neg = torch.clamp(self.margin_neg - D_feat_neg, min=0.0)
         loss_neg = loss_neg**2
         # loss_neg = 0
         # e1_sliced_ = normalize_(e1_sliced_)
         # e2_sliced_ = normalize_(e2_sliced_)
-        loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
+        # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
+        loss_pos = torch.clamp((e1_sliced_ - e2_sliced_)-self.margin_pos, min=0.0)
+        loss_pos = (loss_pos**2).sum(-1)
         # loss_pos = batch_pairwise_cos_distances(e1_sliced_,
         #                                         e2_sliced_,
         #                                         batched=False)
