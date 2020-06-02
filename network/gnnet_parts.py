@@ -14,7 +14,8 @@ class ExtractFeatureMap(nn.Module):
         self.1x1conv = nn.Conv2d(in_channels, out_channels, kernel_size = 1)
 
     def forward(self, x):
-        x = self.1x1conv(x)
+        # x = self.1x1conv(x)
+        
         # resize the feature to Dx(H*W)
         # H = x.size()[2]
         # W = x.size()[3]

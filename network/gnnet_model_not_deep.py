@@ -10,22 +10,22 @@ class EmbeddingNet(nn.Module):
         self.n_channels = n_channels
         self.D = D
         self.bilinear = bilinear
-        self.inc = DoubleConv(n_channels, 64, 8)
-        self.down1 = Down(64, 128, 8)
-        self.down2 = Down(128, 256, 16)
-        self.down3 = Down(256, 512, 16)
+        self.inc = DoubleConv(n_channels, 32, 8)
+        self.down1 = Down(32, 64, 8)
+        self.down2 = Down(64, 128, 16)
+        self.down3 = Down(128, 256, 16)
         # factor = 2 if bilinear else 1
         # self.down4 = Down(256, 512 // factor)
-        self.down4 = Down(512, 1024, 32)
-        self.up1 = Up(1024, 512, 16, bilinear, nearest)
-        self.F1 = OutConv(512, D)
-        self.up2 = Up(512, 256, 16, bilinear, nearest)
-        self.F2 = OutConv(256, D)
-        self.up3 = Up(256, 128, 8, bilinear, nearest)
-        self.F3 = OutConv(128, D)
+        self.down4 = Down(256, 512, 32)
+        self.up1 = Up(512, 256, 16, bilinear, nearest)
+        self.F1 = OutConv(256, D)
+        self.up2 = Up(256, 128, 16, bilinear, nearest)
+        self.F2 = OutConv(128, D)
+        self.up3 = Up(128, 64, 8, bilinear, nearest)
+        self.F3 = OutConv(64, D)
         # self.up4 = Up(64, 32 * factor, bilinear) # gives output features
-        self.up4 = Up(128, 64, 8, bilinear, nearest) # gives output features
-        self.F4 = OutConv(64, D)
+        self.up4 = Up(64, 32, 8, bilinear, nearest) # gives output features
+        self.F4 = OutConv(32, D)
         # self.outc = OutConv(64, D)
     
     def forward(self, x):

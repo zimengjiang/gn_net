@@ -28,7 +28,7 @@ parser.add_argument('--all_slice', type=bool, default=False)
 parser.add_argument('--slice', type=int, default=7)
 
 # robotcar arguments
-parser.add_argument('--robotcar_all_weather', type=bool, default=False)
+parser.add_argument('--robotcar_all_weather', type=bool, default=True)
 parser.add_argument('--robotcar_weather', type=str, default='sun')
 
 # learning arguments
