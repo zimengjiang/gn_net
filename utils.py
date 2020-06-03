@@ -408,8 +408,14 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # e1_sliced_ = normalize_(e1_sliced_)
         # e2_sliced_ = normalize_(e2_sliced_)
         # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
-        loss_pos = torch.clamp((e1_sliced_ - e2_sliced_)-self.margin_pos, min=0.0)
-        loss_pos = (loss_pos**2).sum(-1)
+
+        D_feat_pos = torch.sqrt(batch_pairwise_squared_distances(e1_sliced_, e2_sliced_))
+        loss_pos = torch.clamp(D_feat_pos - self.margin_pos, min = 0.0)
+        loss_pos = loss_pos**2
+
+        # loss_pos = torch.clamp((e1_sliced_ - e2_sliced_)-self.margin_pos, min=0.0)
+        # loss_pos = (loss_pos**2).sum(-1)
+
         # loss_pos = batch_pairwise_cos_distances(e1_sliced_,
         #                                         e2_sliced_,
         #                                         batched=False)
