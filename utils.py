@@ -409,7 +409,8 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # e2_sliced_ = normalize_(e2_sliced_)
         # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
 
-        D_feat_pos = torch.sqrt(((e1_sliced_ - e2_sliced_)**2).sum(-1))
+        # D_feat_pos = torch.sqrt(((e1_sliced_ - e2_sliced_)**2).sum(-1)) # nan error
+        D_feat_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
         loss_pos = torch.clamp(D_feat_pos - self.margin_pos, min = 0.0)
         loss_pos = loss_pos**2
 
