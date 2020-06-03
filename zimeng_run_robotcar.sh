@@ -15,9 +15,9 @@ python run.py \
 --weight_decay 0.001 \
 --gn_loss_lamda 0 \
 --contrastive_lamda 1 \
---margin 1 \
---notes 'euclidean pos and neg, monitor feature norm, matches for each feature level:[1024,1024,1024,1024], contrastive loss,
-topM=64, transpose conv'
+--margin_pos 0.05 \
+--margin_neg 1 \
+--notes 'double margin'
 # --num_matches '4000' 
 # --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
 # --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \ 
