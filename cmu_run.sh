@@ -2,7 +2,7 @@
 
 python run.py \
 --dataset_name 'cmu' \
---dataset_root '/home/lechen/gnnet/gn_net_data' \
+--dataset_root '/local-scratch/' \
 --save_root '/local/home/lixxue/gnnet/checkpoint_cmu/ckp1' \
 --slice 7 \
 --dataset_image_folder 'images' \
