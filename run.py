@@ -24,7 +24,7 @@ parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
 
 # cmu arguments
-parser.add_argument('--all_slice', type=bool, default=False)
+parser.add_argument('--all_slice', type=bool, default=True)
 parser.add_argument('--slice', type=int, default=7)
 
 # robotcar arguments

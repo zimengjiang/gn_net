@@ -1,21 +1,24 @@
 #!/bin/bash
 
 python run.py \
---dataset_root '/home/lechen/gnnet/gn_net_data' \
 --dataset_name 'cmu' \
+--dataset_root '/home/lechen/gnnet/gn_net_data' \
+--save_root '/local/home/lixxue/gnnet/checkpoint_cmu/ckp1' \
+--slice 7 \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \
 --query_folder 'query' \
---scale 4 \
---total_epochs 100 \
---save_root '/local/home/lixxue/gnnet/checkpoint_cmu/ckp1' \
---gn_loss_lamda '0.01' \
+--gn_loss_lamda '0.5' \
 --contrastive_lamda '1' \
---lr 1e-5 \
+--margin_pos 0.05 \
+--margin_neg 1 \
+--scale 4 \
+--total_epochs 200 \
+--lr 1e-6 \
 --schedule_lr_fraction '0.1' \
---margin '0.5' \
---weight_decay 0.01 \
+--weight_decay 0.1
 --validation_frequency 1  
+--notes 'euclidean pos and neg, monitor feature norm, matches for each feature level:[1024,1024,1024,1024], contrastive loss'
 # --num_matches '4000' 
 # --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
 # --save_root '/Users/zimengjiang/code/3dv/ours/checkpoint' \ 
