@@ -17,8 +17,8 @@ CUDA_VISIBLE_DEVICES=0 python run.py \
     --schedule_lr_fraction '0.1' \
     --weight_decay 0.1 \
     --validation_frequency 5 \
-    --notes 'img scale 4 channel 128 on cmu park slices'
+    --notes 'img scale 4 channel 128 on cmu park slices' \
+    --resume_checkpoint '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/park/0_checkpoint.pth.tar'
 # --num_matches '4000' 
-# --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
 
 
