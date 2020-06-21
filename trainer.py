@@ -5,7 +5,7 @@ import os, copy
 import matplotlib.pyplot as plt
 from utils import save_checkpoint, get_lr
 from tqdm import tqdm
-import wandb
+# import wandb
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -50,7 +50,7 @@ def fit(train_loader,
     train_y_gn = []
 
 
-    wandb.watch(model, log="all")
+    # wandb.watch(model, log="all")
     iteration = 0
     for epoch in range(start_epoch, n_epochs):
         iteration = epoch*len(train_loader)
@@ -116,46 +116,46 @@ def fit(train_loader,
             save_checkpoint(model.state_dict(), False, save_root, str(epoch))
         print(message)
 
-        wandb.log({
-            "epoch": epoch,
-            "total_train_loss": train_loss,
-            "train_triplet_loss": total_contras_loss,
-            "train_gn_loss": total_gnloss,
-            "train_contrastive_level4": train_triplet_level[0],
-            "train_contrastive_level3": train_triplet_level[1],
-            "train_contrastive_level2": train_triplet_level[2],
-            "train_contrastive_level1": train_triplet_level[3],
-            "train_gn_level4": train_gn_level[0],
-            "train_gn_level3": train_gn_level[1],
-            "train_gn_level2": train_gn_level[2],
-            "train_gn_level1": train_gn_level[3],
-            "train_gn_e1": train_e1,
-            "train_gn_e2": train_e2,
-            "total_loss_pos_mean_level8": total_loss_pos_mean_level[0],
-            "total_loss_neg_mean_level8": total_loss_neg_mean_level[0],
-            "total_loss_pos_mean_level4": total_loss_pos_mean_level[1],
-            "total_loss_neg_mean_level4": total_loss_neg_mean_level[1],
-            "total_loss_pos_mean_level2": total_loss_pos_mean_level[2],
-            "total_loss_neg_mean_level2": total_loss_neg_mean_level[2],
-            "total_loss_pos_mean_level1": total_loss_pos_mean_level[3],
-            "total_loss_neg_mean_level1": total_loss_neg_mean_level[3]
-        })
-        if(val_loader):
-            wandb.log({
-            "total_val_loss": val_loss,
-            "val_triplet_loss": val_contras_loss,
-            "val_gn_loss": val_gnloss,
-            "val_triplet_level8": val_triplet_level[0],
-            "val_triplet_level4": val_triplet_level[1],
-            "val_triplet_level2": val_triplet_level[2],
-            "val_triplet_level1": val_triplet_level[3],
-            "val_gn_level8": val_gn_level[0],
-            "val_gn_level4": val_gn_level[1],
-            "val_gn_level2": val_gn_level[2],
-            "val_gn_level1": val_gn_level[3],
-            "val_gn_e1": val_e1,
-            "val_gn_e2": val_e2
-            })
+        # wandb.log({
+        #     "epoch": epoch,
+        #     "total_train_loss": train_loss,
+        #     "train_triplet_loss": total_contras_loss,
+        #     "train_gn_loss": total_gnloss,
+        #     "train_contrastive_level4": train_triplet_level[0],
+        #     "train_contrastive_level3": train_triplet_level[1],
+        #     "train_contrastive_level2": train_triplet_level[2],
+        #     "train_contrastive_level1": train_triplet_level[3],
+        #     "train_gn_level4": train_gn_level[0],
+        #     "train_gn_level3": train_gn_level[1],
+        #     "train_gn_level2": train_gn_level[2],
+        #     "train_gn_level1": train_gn_level[3],
+        #     "train_gn_e1": train_e1,
+        #     "train_gn_e2": train_e2,
+        #     "total_loss_pos_mean_level8": total_loss_pos_mean_level[0],
+        #     "total_loss_neg_mean_level8": total_loss_neg_mean_level[0],
+        #     "total_loss_pos_mean_level4": total_loss_pos_mean_level[1],
+        #     "total_loss_neg_mean_level4": total_loss_neg_mean_level[1],
+        #     "total_loss_pos_mean_level2": total_loss_pos_mean_level[2],
+        #     "total_loss_neg_mean_level2": total_loss_neg_mean_level[2],
+        #     "total_loss_pos_mean_level1": total_loss_pos_mean_level[3],
+        #     "total_loss_neg_mean_level1": total_loss_neg_mean_level[3]
+        # })
+        # if(val_loader):
+        #     wandb.log({
+        #     "total_val_loss": val_loss,
+        #     "val_triplet_loss": val_contras_loss,
+        #     "val_gn_loss": val_gnloss,
+        #     "val_triplet_level8": val_triplet_level[0],
+        #     "val_triplet_level4": val_triplet_level[1],
+        #     "val_triplet_level2": val_triplet_level[2],
+        #     "val_triplet_level1": val_triplet_level[3],
+        #     "val_gn_level8": val_gn_level[0],
+        #     "val_gn_level4": val_gn_level[1],
+        #     "val_gn_level2": val_gn_level[2],
+        #     "val_gn_level1": val_gn_level[3],
+        #     "val_gn_e1": val_e1,
+        #     "val_gn_e2": val_e2
+        #     })
 
         plt.figure(figsize=(12, 8))
         plt.subplot(2, 1, 1)
@@ -182,8 +182,8 @@ def fit(train_loader,
         plt.plot(train_x, train_y_gn, "+-", label='train_gn')
         # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
         plt.savefig("./train_val_loss_pic.png")
-        wandb.Image(plt)
-        wandb.log({"train_val_loss_pic": plt})
+        # wandb.Image(plt)
+        # wandb.log({"train_val_loss_pic": plt})
         plt.close()
 
 
@@ -213,7 +213,7 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     imgA = []
     imgB = []
 
-    for batch_idx, (img_ab, corres_ab) in enumerate((train_loader)):
+    for batch_idx, (img_ab, corres_ab) in enumerate(tqdm(train_loader)):
         corres_ab = corres_ab if len(corres_ab) > 0 else None
         if not type(img_ab) in (tuple, list):
             img_ab = (img_ab, )
@@ -258,11 +258,11 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (
             tuple, list) else gnloss_outputs
 
-        wandb.log({
-            "total_loss - iteration": loss, 
-            "contrastive_loss - iteration": contras_loss,
-            "gn_loss - iteration": gnloss
-        })
+        # wandb.log({
+        #     "total_loss - iteration": loss, 
+        #     "contrastive_loss - iteration": contras_loss,
+        #     "gn_loss - iteration": gnloss
+        # })
 
 
         total_loss += loss.item()
@@ -358,8 +358,8 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             for i in range(4):
                 total_tripletloss_level[i] += tripletloss_level[i]
                 total_gnloss_level[i] += gnloss_level[i]
-            imgA.append(wandb.Image(img_ab[0]))
-            imgB.append(wandb.Image(img_ab[1]))
+            # imgA.append(wandb.Image(img_ab[0]))
+            # imgB.append(wandb.Image(img_ab[1]))
         
             # for metric in metrics:
             #     metric(outputs, target, loss_outputs)

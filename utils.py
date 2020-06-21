@@ -4,7 +4,7 @@ import shutil, os
 import numpy as np
 import torch
 import torch.nn.functional as F
-import wandb
+# import wandb
 # import torchsnooper
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -396,9 +396,9 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         e2_sliced_neg_norm_mean = torch.mean(torch.norm(e2_sliced_neg, p=2, dim=-1))
         e1_sliced_pos_norm_mean = torch.mean(torch.norm(e1_sliced_, p=2, dim=-1))
         e2_sliced_pos_norm_mean = torch.mean(torch.norm(e2_sliced_, p=2, dim=-1))
-        wandb.log({"feature_norm_a1_level{}".format(level): e1_sliced_pos_norm_mean,
-        "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
-        "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
+        # wandb.log({"feature_norm_a1_level{}".format(level): e1_sliced_pos_norm_mean,
+        # "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
+        # "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
 
         D_feat_neg = torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx])
         # loss_neg = torch.clamp(self.margin - D_feat_neg, min=0.0)
@@ -427,7 +427,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         loss_pos_mean = torch.mean(loss_pos, dim=-1)
         # TODO:
         loss_neg_mean = torch.mean(loss_neg, dim=-1)
-        wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
+        # wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
         '''mean over all negative pairs'''
         # loss_pos = loss_pos.reshape(B*N,1)
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)
