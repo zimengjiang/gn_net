@@ -14,7 +14,7 @@ CUDA_VISIBLE_DEVICES=1 python run.py \
     --lr 1e-6 \
     --schedule_lr_fraction '0.1' \
     --weight_decay 0.1 \
-    --validation_frequency 5 \
+    --validation_frequency 1 \
     --notes 'img scale 4 channel 128 on cmu suburban slices'
 # --num_matches '4000' 
 # --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
