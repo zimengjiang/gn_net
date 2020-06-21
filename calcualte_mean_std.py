@@ -8,7 +8,7 @@ import argparse
 from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
-import wandb
+# import wandb
 import numpy as np
 
 parser = argparse.ArgumentParser()
@@ -98,8 +98,8 @@ parser.add_argument('--notes', type=str, default=None)
 args = parser.parse_args()
 
 # visulaization
-wandb.init(config=args, project="gn_net_workstation")
-wandb.config["more"] = "custom"
+# wandb.init(config=args, project="gn_net_workstation")
+# wandb.config["more"] = "custom"
 
 # Just for dataset dividing
 pair_file_roots1 = Path(args.dataset_root, args.dataset_name, args.pair_info_folder)
