@@ -1,5 +1,3 @@
-#!/bin/bash
-
 CUDA_VISIBLE_DEVICES=0 python run.py \
     --dataset_name 'cmu' \
     --dataset_root '/local-scratch/fuyang/dad/' \
@@ -19,7 +17,7 @@ CUDA_VISIBLE_DEVICES=0 python run.py \
     --weight_decay 0.1 \
     --validation_frequency 5 \
     --notes 'img scale 4 channel 128 on cmu park slices' \
-    --resume_checkpoint '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/park/0_checkpoint.pth.tar'
+#    --resume_checkpoint '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/park/0_checkpoint.pth.tar'
 # --num_matches '4000' 
 
 
