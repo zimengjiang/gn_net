@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from utils import save_checkpoint, get_lr
 from tqdm import tqdm
 # import wandb
-
+from tensorboardX import SummaryWriter
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 
@@ -23,6 +23,7 @@ def fit(train_loader,
         validation_frequency,
         save_root,
         init,
+        writer,
         start_epoch=0):
     """
     Loaders, model, loss function and metrics should work together for a given task,
@@ -73,7 +74,8 @@ def fit(train_loader,
             save_root,
             epoch,
             init,
-            iteration)
+            iteration,
+            writer)
         train_x.append(epoch + 1)
         train_y.append(train_loss)
         train_y_contras.append(total_contras_loss)
@@ -83,6 +85,7 @@ def fit(train_loader,
         message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}\ttriplet: {:.6f}\tgn loss: {:.6f}'.format(
             epoch + 1, n_epochs, train_loss, total_contras_loss, total_gnloss)
         message += ' Lr:{}'.format(get_lr(optimizer))
+        # writer.add_scalar('train_loss', train_loss, epoch + 1)
         # Validate stage
         if val_loader and (epoch % validation_frequency == 0):
             val_loss, val_contras_loss, val_gnloss, val_triplet_level, val_gn_level, val_e1, val_e2 = test_epoch(
@@ -106,14 +109,14 @@ def fit(train_loader,
             # save the currently best model
             if val_loss < best_loss:
                 best_loss = val_loss
-                best_model_wts = copy.deepcopy(model.state_dict())
-                save_checkpoint(best_model_wts, True, save_root, str(epoch))
+                # best_model_wts = copy.deepcopy(model.state_dict())
+                save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), True, save_root, epoch)
                 message += '\nSaving best model ...'
 
         # save the model for every 20 epochs
         if (epoch % (n_epochs / 10)) == 0:
             message += '\nSaving checkpoint ... \n'
-            save_checkpoint(model.state_dict(), False, save_root, str(epoch))
+            save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), False, save_root, epoch)
         print(message)
 
         # wandb.log({
@@ -188,7 +191,7 @@ def fit(train_loader,
 
 
 def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
-                log_interval, save_root, epoch, init, iteration):
+                log_interval, save_root, epoch, init, iteration, writer):
     # initialize network parameters, oscillates a lot here. not good
     if init and epoch == 0:
         for m in model.modules():
@@ -212,8 +215,8 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
 
     imgA = []
     imgB = []
-
-    for batch_idx, (img_ab, corres_ab) in enumerate(tqdm(train_loader)):
+    loader = tqdm(train_loader)
+    for batch_idx, (img_ab, corres_ab) in enumerate(loader):
         corres_ab = corres_ab if len(corres_ab) > 0 else None
         if not type(img_ab) in (tuple, list):
             img_ab = (img_ab, )
@@ -264,13 +267,24 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         #     "gn_loss - iteration": gnloss
         # })
 
-
         total_loss += loss.item()
         total_contras_loss += contras_loss.item()
         total_gnloss += gnloss.item()
         total_e1 += e1.item()
         total_e2 += e2.item()
 
+        # if (iteration % 1 == 0):
+        #     message1 = '\niteration: {}. Train set: Average loss: {:.4f}\ttriplet: {:.6f}\tgn loss: {:.6f}'.format(
+        #             iteration, total_loss / (batch_idx + 1), total_contras_loss / (batch_idx + 1), total_gnloss / (batch_idx + 1))
+        #     tqdm.write(message1)
+
+        loader.set_description("Iteration: {}, Train loss: {:.4f}, triplet: {:.6f}, gn: {:.6f}".format(iteration, total_loss / (batch_idx + 1), total_contras_loss / (batch_idx + 1), total_gnloss / (batch_idx + 1)))
+        loader.refresh()
+        
+        writer.add_scalar('train_loss_per_iter', total_loss / (batch_idx + 1), iteration)
+        writer.add_scalar('triplet_loss_per_iter', total_contras_loss / (batch_idx + 1), iteration)
+        writer.add_scalar('gn_loss_per_iter', total_gnloss / (batch_idx + 1), iteration)
+        
         for i in range(4):
             total_tripletloss_level[i] += tripletloss_level[i]
             total_gnloss_level[i] += gnloss_level[i]
@@ -283,6 +297,7 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         del img_ab
         del corres_ab
         torch.cuda.empty_cache()
+
     total_loss /= (batch_idx + 1)
     total_contras_loss /= (batch_idx + 1)
     total_gnloss /= (batch_idx + 1)

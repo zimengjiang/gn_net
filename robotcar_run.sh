@@ -2,8 +2,8 @@
 
 python run.py \
 --dataset_name 'robotcar' \
---dataset_root '/home/lechen/gnnet/robotcar_data' \
---save_root '/home/lechen/gnnet/checkpoint/checkpoint_rbc_test6_db_pos0.05_neg1_all_channel64_deep' \
+--dataset_root '/local/home/lixxue/gnnet/robotcar_data_tiny' \
+--save_root '/local/home/lixxue/gnnet/ckpt_test' \
 --robotcar_weather 'sun' \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \

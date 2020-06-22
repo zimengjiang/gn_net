@@ -28,7 +28,7 @@ parser.add_argument('--all_slice', type=bool, default=True)
 parser.add_argument('--slice', type=int, default=7)
 
 # robotcar arguments
-parser.add_argument('--robotcar_all_weather', type=bool, default=True)
+parser.add_argument('--robotcar_all_weather', type=bool, default=False)
 parser.add_argument('--robotcar_weather', type=str, default='sun')
 
 # learning arguments
@@ -63,6 +63,7 @@ parser.add_argument('--init',
                     default=False,
                     help="Initialize the network weights")
 parser.add_argument('--resume_checkpoint', type=str, default=None)
+# parser.add_argument('--resume_checkpoint', type=str, default='/local/home/lixxue/gnnet/ckpt_test/2_checkpoint.pth.tar')
 
 # loss hyperparameters
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
@@ -100,6 +101,8 @@ args = parser.parse_args()
 # visulaization
 # wandb.init(config=args, project="gn_net_workstation")
 # wandb.config["more"] = "custom"
+
+
 
 # Just for dataset dividing
 pair_file_roots1 = Path(args.dataset_root, args.dataset_name, args.pair_info_folder)
@@ -185,9 +188,6 @@ print("****** START ****** \n")
 embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
 model = GNNet(embedding_net)
 model = model.to(device)
-if (args.resume_checkpoint):
-    model.load_state_dict(
-        torch.load(args.resume_checkpoint, map_location=torch.device(device)))
 
 # set up loss
 loss_fn = GNLoss(margin_pos=args.margin_pos, 
@@ -206,6 +206,26 @@ scheduler = optim.lr_scheduler.StepLR(optimizer,
                                       args.schedule_lr_frequency,
                                       gamma=args.schedule_lr_fraction,
                                       last_epoch=-1)  # optional
+
+# if (args.resume_checkpoint):
+#     model.load_state_dict(
+#         torch.load(args.resume_checkpoint, map_location=torch.device(device)))
+
+if (args.resume_checkpoint):
+    checkpoint = torch.load(args.resume_checkpoint, map_location=torch.device(device))
+    start_epoch = checkpoint['epoch']
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    print("=> loaded checkpoint '{}' (epoch {})" .format(args.resume_checkpoint, checkpoint['epoch']))
+else:
+    start_epoch = args.start_epoch
+    print("Did not use any checkpoint")
+
+start_iteration = (start_epoch)*len(train_loader)
+#SummaryWriter encapsulates everything
+writer = SummaryWriter('log', purge_step=start_iteration)
+
 n_epochs = args.total_epochs
 log_interval = args.log_interval
 save_root = args.save_root
@@ -213,4 +233,4 @@ validation_frequency = args.validation_frequency
 init = args.init
 # fit the model
 fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs,
-    cuda, log_interval, validation_frequency, save_root, init)
+    cuda, log_interval, validation_frequency, save_root, init, writer, start_epoch)
