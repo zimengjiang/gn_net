@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=1 python run.py \
+CUDA_VISIBLE_DEVICES=0 python run.py \
     --dataset_name 'cmu' \
     --dataset_root '/local-scratch/fuyang/dad/' \
     --save_root '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/suburban' \
@@ -11,8 +11,9 @@ CUDA_VISIBLE_DEVICES=1 python run.py \
     --margin_neg 1 \
     --scale 4 \
     --total_epochs 200 \
-    --lr 1e-6 \
-    --schedule_lr_fraction '0.1' \
+    --lr 1e-3 \
+    --schedule_lr_frequency 1 \
+    --schedule_lr_fraction 0.85 \
     --weight_decay 0.1 \
     --validation_frequency 1 \
     --notes 'img scale 4 channel 128 on cmu suburban slices'

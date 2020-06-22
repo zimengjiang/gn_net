@@ -13,8 +13,9 @@ CUDA_VISIBLE_DEVICES=0 python run.py \
     --margin_neg 1 \
     --scale 4 \
     --total_epochs 200 \
-    --lr 1e-6 \
-    --schedule_lr_fraction '0.1' \
+    --lr 1e-3 \
+    --schedule_lr_frequency 1 \
+    --schedule_lr_fraction 0.85 \
     --weight_decay 0.1 \
     --validation_frequency 5 \
     --notes 'img scale 4 channel 128 on cmu park slices' \

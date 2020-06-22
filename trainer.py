@@ -82,6 +82,8 @@ def fit(train_loader,
         train_y_gn.append(total_gnloss)
 
         scheduler.step()
+        # for param_group in optimizer.param_groups:
+        #     print(param_group['lr'])
         message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}\ttriplet: {:.6f}\tgn loss: {:.6f}'.format(
             epoch + 1, n_epochs, train_loss, total_contras_loss, total_gnloss)
         message += ' Lr:{}'.format(get_lr(optimizer))

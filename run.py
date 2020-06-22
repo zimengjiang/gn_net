@@ -45,9 +45,11 @@ parser.add_argument('--num_workers',
 parser.add_argument('--lr', type=float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency',
                     type=int,
-                    default=50,
+                    # default=50,
+                    default=1,
                     help='in number of iterations (0 for no schedule)')
-parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
+# parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
+parser.add_argument('--schedule_lr_fraction', type=float, default=0.85)
 parser.add_argument('--scale',
                     type=int,
                     default=2,
