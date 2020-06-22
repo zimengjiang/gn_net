@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=0 python run.py \
+CUDA_VISIBLE_DEVICES=3 python run.py \
     --dataset_name 'cmu' \
     --dataset_root '/local-scratch/fuyang/dad/' \
     --save_root '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/park' \
