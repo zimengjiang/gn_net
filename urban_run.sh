@@ -17,8 +17,5 @@ CUDA_VISIBLE_DEVICES=0 python run.py \
     --weight_decay 0.1 \
     --validation_frequency 1 \
     --notes 'img scale 4 channel 128 on cmu urban slices' \
-    --log_dir 'logs/urban'
-# --num_matches '4000' 
-# --resume_checkpoint '/Users/zimengjiang/code/3dv/ours/S2DHM/checkpoints/gnnet/25_model_best.pth.tar'
-
-
+    --log_dir 'logs/urban' \
+#    --resume_checkpoint '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/urban/1_checkpoint.pth.tar'

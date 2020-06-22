@@ -272,19 +272,19 @@ def save_checkpoint(model_state,
                     is_best,
                     path,
                     epoch,
-                    filename='checkpoint.pth.tar'):
+                    filename='ckpt.pth.tar'):
     prefix = str(epoch)
     prefix_save = os.path.join(path, prefix)
     name = prefix_save + '_' + filename
     # torch.save(state, name)
+    if is_best:
+        name = prefix_save + '_best.pth.tar'
     torch.save({
             'epoch': epoch,
             'model_state_dict': model_state,
             'optimizer_state_dict': optimizer_state,
             'scheduler_state_dict': scheduler_state
             }, name)
-    if is_best:
-        shutil.copyfile(name, prefix_save + '_model_best.pth.tar')
 
 
 def get_lr(optimizer):

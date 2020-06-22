@@ -91,7 +91,7 @@ def fit(train_loader,
         # Validate stage
         if val_loader and (epoch % validation_frequency == 0):
             val_loss, val_contras_loss, val_gnloss, val_triplet_level, val_gn_level, val_e1, val_e2 = test_epoch(
-                val_loader, model, loss_fn, cuda, epoch)
+                val_loader, model, loss_fn, cuda, epoch, writer)
             val_loss /= len(val_loader)
             val_contras_loss /= len(val_loader)
             val_gnloss /= len(val_loader)
@@ -112,11 +112,18 @@ def fit(train_loader,
             if val_loss < best_loss:
                 best_loss = val_loss
                 # best_model_wts = copy.deepcopy(model.state_dict())
-                save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), True, save_root, epoch)
-                message += '\nSaving best model ...'
+                with open(os.path.join(save_root, "best.txt"), 'a+') as f:
+                    f.write("{}\n".format(epoch))
 
-        # save the model for every 20 epochs
-        if (epoch % (n_epochs / 10)) == 0:
+                if epoch+1 >= 20:
+                    save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), True, save_root, epoch)
+                    message += '\nSaving best model ...'
+                
+            
+                # save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), True, save_root, epoch)
+
+        # save the model for every 5 epochs
+        if (epoch+1 % 5) == 0:
             message += '\nSaving checkpoint ... \n'
             save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), False, save_root, epoch)
         print(message)
@@ -283,9 +290,9 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         loader.set_description("Iteration: {}, Train loss: {:.4f}, triplet: {:.6f}, gn: {:.6f}".format(iteration, total_loss / (batch_idx + 1), total_contras_loss / (batch_idx + 1), total_gnloss / (batch_idx + 1)))
         loader.refresh()
         
-        writer.add_scalar('train_loss_per_iter', total_loss / (batch_idx + 1), iteration)
-        writer.add_scalar('triplet_loss_per_iter', total_contras_loss / (batch_idx + 1), iteration)
-        writer.add_scalar('gn_loss_per_iter', total_gnloss / (batch_idx + 1), iteration)
+        # writer.add_scalar('train_total_loss_per_iter', total_loss / (batch_idx + 1), iteration)
+        # writer.add_scalar('train_triplet_loss_per_iter', total_contras_loss / (batch_idx + 1), iteration)
+        # writer.add_scalar('train_gn_loss_per_iter', total_gnloss / (batch_idx + 1), iteration)
         
         for i in range(4):
             total_tripletloss_level[i] += tripletloss_level[i]
@@ -310,10 +317,15 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     total_e1 /= (batch_idx + 1)
     total_e2 /= (batch_idx + 1)
 
+
+    writer.add_scalar('train_total_loss', total_loss, epoch)
+    writer.add_scalar('train_triplet_loss', total_contras_loss, epoch)
+    writer.add_scalar('train_gn_loss', total_gnloss, epoch)
+
     return total_loss, total_contras_loss, total_gnloss, total_tripletloss_level, total_gnloss_level, total_e1, total_e2, total_loss_pos_mean_level, total_loss_neg_mean_level
 
 
-def test_epoch(val_loader, model, loss_fn, cuda, epoch):
+def test_epoch(val_loader, model, loss_fn, cuda, epoch, writer):
     with torch.no_grad():
         model.eval()
         val_loss = 0
@@ -380,5 +392,10 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
         
             # for metric in metrics:
             #     metric(outputs, target, loss_outputs)
+
+
+    writer.add_scalar('val_total_loss', val_loss, epoch)
+    writer.add_scalar('val_triplet_loss', val_contras_loss, epoch)
+    writer.add_scalar('val_gn_loss', val_gnloss, epoch)
 
     return val_loss, val_contras_loss, val_gnloss, tripletloss_level, gnloss_level, val_e1, val_e2

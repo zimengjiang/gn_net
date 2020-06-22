@@ -220,7 +220,7 @@ scheduler = optim.lr_scheduler.StepLR(optimizer,
 
 if (args.resume_checkpoint):
     checkpoint = torch.load(args.resume_checkpoint, map_location=torch.device(device))
-    start_epoch = checkpoint['epoch']
+    start_epoch = checkpoint['epoch']+1
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
