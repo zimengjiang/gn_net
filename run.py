@@ -8,6 +8,7 @@ import argparse
 from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
+import os
 # import wandb
 parser = argparse.ArgumentParser()
 
@@ -96,6 +97,7 @@ parser.add_argument('--validate',
                     default=True,
                     help="validate during training or not")
 parser.add_argument('--notes', type=str, default=None)
+parser.add_argument('--log_dir', type=str, default='log')
 
 
 args = parser.parse_args()
@@ -131,6 +133,9 @@ print('num_valset: {} \n'.format(num_valset))
 
 print('Arguments & hyperparams: ')
 print(args)
+os.makedirs(args.log_dir, exist_ok=True)
+with open(os.path.join(args.log_dir, 'args.txt'), 'w') as f:
+    f.write(str(args))
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -226,7 +231,7 @@ else:
 
 start_iteration = (start_epoch)*len(train_loader)
 #SummaryWriter encapsulates everything
-writer = SummaryWriter('log', purge_step=start_iteration)
+writer = SummaryWriter(args.log_dir, purge_step=start_iteration)
 
 n_epochs = args.total_epochs
 log_interval = args.log_interval
