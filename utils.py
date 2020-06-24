@@ -4,7 +4,7 @@ import shutil, os
 import numpy as np
 import torch
 import torch.nn.functional as F
-import wandb
+# import wandb
 # import torchsnooper
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -402,14 +402,14 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         sampled_neg_idx_y = sampled_neg_idx_in_img2 // W
         sampled_neg_idx_xy = torch.stack((sampled_neg_idx_x,sampled_neg_idx_y),dim=1).type(torch.LongTensor)
         e2_sliced_neg = extract_features_int(embedding2, sampled_neg_idx_xy[None, ...])
-        e2_sliced_neg_norm_mean = torch.mean(torch.norm(e2_sliced_neg, p=2, dim=-1))
-        e1_sliced_pos_norm_mean = torch.mean(torch.norm(e1_sliced_, p=2, dim=-1))
-        e2_sliced_pos_norm_mean = torch.mean(torch.norm(e2_sliced_, p=2, dim=-1))
-        wandb.log({"feature_norm_a1_level{}".format(level): e1_sliced_pos_norm_mean,
-        "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
-        "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
+        # e2_sliced_neg_norm_mean = torch.mean(torch.norm(e2_sliced_neg, p=2, dim=-1))
+        # e1_sliced_pos_norm_mean = torch.mean(torch.norm(e1_sliced_, p=2, dim=-1))
+        # e2_sliced_pos_norm_mean = torch.mean(torch.norm(e2_sliced_, p=2, dim=-1))
+        # wandb.log({"feature_norm_a1_level{}".format(level): e1_sliced_pos_norm_mean,
+        # "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
+        # "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
 
-        D_feat_neg = torch.clamp(torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx]), min=1e-16)
+        D_feat_neg = torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx])
         # loss_neg = torch.clamp(self.margin - D_feat_neg, min=0.0)
         loss_neg = torch.clamp(self.margin_neg - D_feat_neg, min=0.0)
         loss_neg = loss_neg**2
@@ -419,7 +419,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
 
         # D_feat_pos = torch.sqrt(((e1_sliced_ - e2_sliced_)**2).sum(-1)) # nan error
-        D_feat_pos = torch.clamp(torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1), min = 1e-16)
+        D_feat_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
         loss_pos = torch.clamp(D_feat_pos - self.margin_pos, min = 0.0)
         loss_pos = loss_pos**2
 
@@ -436,7 +436,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         loss_pos_mean = torch.mean(loss_pos, dim=-1)
         # TODO:
         loss_neg_mean = torch.mean(loss_neg, dim=-1)
-        wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
+        # wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
         '''mean over all negative pairs'''
         # loss_pos = loss_pos.reshape(B*N,1)
         # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)

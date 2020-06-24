@@ -46,7 +46,7 @@ class GNLoss(nn.Module):
         return torch.sum(torch.pow(mdist,2) / N)
 
     # @torchsnooper.snoop()
-    def compute_gn_loss(self, f_t, fb, ub, level, train_or_val):
+    def compute_gn_loss(self, f_t, fb, ub, train_or_val):
         '''
         f_t: target features F_a(ua)
         fb: feature map b, BxCxHxW
@@ -102,10 +102,12 @@ class GNLoss(nn.Module):
     def forward(self, F_a, F_b, positive_matches, iteration, train_or_val):
         '''
         F_a is a list containing 4 feature maps of different shapes
-        1: B x C X H/8 x W/8
-        2: B x C X H/4 x W/4
-        3: B x C X H/2 x W/2
-        4: B x C X H x W
+        1: B x C X H/(scale*4) x W/(sclae*4)
+        2: B x C X H/(sclae*8) x W/(sclae*8)
+        3: B x C X H/(sclae*8) x W/(sclae*8)
+        4: B x C X H/(sclae*16) x W/(sclae*16)
+        5: B x C X H/(sclae*16) x W/(sclae*16)
+
 
         known_matches is the positive matches sampled by dataloader.
         {'a':BxNx2,'b':BxNx2}
@@ -118,8 +120,8 @@ class GNLoss(nn.Module):
         # positive_matches = known_matches[0]
         # negative_matches = known_matches[1]
         # positive_matches = known_matches
-        self.max_size_x = F_a[-1].shape[3]  # B x C x H x W
-        self.max_size_y = F_a[-1].shape[2]
+        self.max_size_x = F_a[0].shape[3]  # B x C x H x W
+        self.max_size_y = F_a[0].shape[2]
         '''get neg pairs, do it only for the finest feature'''
         # slice features for positive matches
         # fa_4_sliced = extract_features(F_a[-1],
@@ -145,10 +147,11 @@ class GNLoss(nn.Module):
         # num_matches_list = [500, 1000, 2000, 4000]
 
         N = positive_matches['a'].shape[1]  # the number of pos and neg matches
+        scaling = [4*self.img_scale, 8*self.img_scale, 8*self.img_scale, 16*self.img_scale, 16*self.img_scale] # scaling w.r.t original size, i.e robotcar 1024*1024
         for i in range(len(F_a)):
-            level = np.power(2, 3 - i)
+            level = scaling[i]
             positive_matches_sampled = random_select_positive_matches(positive_matches['a'], positive_matches['b'], num_of_pairs=self.num_matches)
-            fa_sliced_pos = extract_features(F_a[i], positive_matches_sampled['a'] / (level * self.img_scale))
+            fa_sliced_pos = extract_features(F_a[i], positive_matches_sampled['a'] / level)
 
             '''compute contrastive loss'''
             # loss of positive pairs:
@@ -161,7 +164,7 @@ class GNLoss(nn.Module):
             # topM = np.clip(64*np.exp(-iteration*0.6/1000), a_min = 5, a_max=None)
             topM = np.clip(300*np.exp(-iteration*0.6/10000), a_min = 5, a_max=None)
             # print("topM: ", topM)
-            loss_triplet, loss_pos_mean, loss_neg_mean = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches_sampled, self.img_scale*level, topM = int(topM), dist_threshold=0.2, train_or_val=train_or_val, level=level)            
+            loss_triplet, loss_pos_mean, loss_neg_mean = self.pair_selector.get_triplets(F_a[i], F_b[i], positive_matches_sampled, level, topM = int(topM), dist_threshold=0.2, train_or_val=train_or_val, level=i)            
             
             # to keep very level the same loss scale
             # loss_triplet /= (i+1)
@@ -172,7 +175,7 @@ class GNLoss(nn.Module):
 
             '''compute gn loss'''
             # TODO:
-            loss_gn_all = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches_sampled['b'] / (level * self.img_scale), level, train_or_val)  # //4
+            loss_gn_all = self.compute_gn_loss(fa_sliced_pos, F_b[i], positive_matches_sampled['b'] / level, train_or_val)  # //4
             loss_gn = loss_gn_all[0]
             gnloss_level.append(loss_gn)
             # loss = self.contrastive_lamda*(loss_pos + loss_neg) + (self.gn_lamda * loss_gn) + loss
