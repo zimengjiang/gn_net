@@ -8,6 +8,7 @@ import argparse
 from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
+import os
 # import wandb
 parser = argparse.ArgumentParser()
 
@@ -45,9 +46,11 @@ parser.add_argument('--num_workers',
 parser.add_argument('--lr', type=float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency',
                     type=int,
-                    default=50,
+                    # default=50,
+                    default=1,
                     help='in number of iterations (0 for no schedule)')
-parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
+# parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
+parser.add_argument('--schedule_lr_fraction', type=float, default=0.85)
 parser.add_argument('--scale',
                     type=int,
                     default=2,
@@ -94,6 +97,7 @@ parser.add_argument('--validate',
                     default=True,
                     help="validate during training or not")
 parser.add_argument('--notes', type=str, default=None)
+parser.add_argument('--log_dir', type=str, default='log')
 
 
 args = parser.parse_args()
@@ -129,6 +133,9 @@ print('num_valset: {} \n'.format(num_valset))
 
 print('Arguments & hyperparams: ')
 print(args)
+os.makedirs(args.log_dir, exist_ok=True)
+with open(os.path.join(args.log_dir, 'args.txt'), 'w') as f:
+    f.write(str(args))
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -213,7 +220,7 @@ scheduler = optim.lr_scheduler.StepLR(optimizer,
 
 if (args.resume_checkpoint):
     checkpoint = torch.load(args.resume_checkpoint, map_location=torch.device(device))
-    start_epoch = checkpoint['epoch']
+    start_epoch = checkpoint['epoch']+1
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
@@ -224,7 +231,7 @@ else:
 
 start_iteration = (start_epoch)*len(train_loader)
 #SummaryWriter encapsulates everything
-writer = SummaryWriter('log', purge_step=start_iteration)
+writer = SummaryWriter(args.log_dir, purge_step=start_iteration)
 
 n_epochs = args.total_epochs
 log_interval = args.log_interval
