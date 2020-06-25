@@ -9,3 +9,5 @@ check.py
 test.py
 wandb/
 log/
+ckpt_cmu/
+logs/
