@@ -136,8 +136,10 @@ def batch_pairwise_squared_distances(x, y):
     y_t = y.permute(0, 2, 1).contiguous()
     y_norm = (y**2).sum(2).view(y.shape[0], 1, y.shape[1])
     dist = x_norm + y_norm - 2.0 * torch.bmm(x, y_t)
-    dist[dist != dist] = 0  # replace nan values with 0
-    return torch.clamp(dist, 0.0, np.inf)
+    # dist[dist != dist] = 0  # replace nan values with 0
+    dist[dist != dist] = 1e-16  # replace nan values with 0
+    # return torch.clamp(dist, 0.0, np.inf)
+    return torch.clamp(dist, 1e-16, np.inf)
 
 
 def normalize_(x):
@@ -394,14 +396,14 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         dist_nn12 = dist_nn12.reshape(B * N, -1)
         idx_in_2 = idx_in_2.reshape(B * N, -1)
 
-        # for visualization
+        # for visualization, for checking feature norm
         sampled_neg_idx = torch.randint(0, topM, (B * N, ))
-        sampled_neg_idx_in_img2 = idx_in_2[torch.arange(B * N),sampled_neg_idx]
+        # sampled_neg_idx_in_img2 = idx_in_2[torch.arange(B * N),sampled_neg_idx]
         #todo:
-        sampled_neg_idx_x = sampled_neg_idx_in_img2 % W 
-        sampled_neg_idx_y = sampled_neg_idx_in_img2 // W
-        sampled_neg_idx_xy = torch.stack((sampled_neg_idx_x,sampled_neg_idx_y),dim=1).type(torch.LongTensor)
-        e2_sliced_neg = extract_features_int(embedding2, sampled_neg_idx_xy[None, ...])
+        # sampled_neg_idx_x = sampled_neg_idx_in_img2 % W 
+        # sampled_neg_idx_y = sampled_neg_idx_in_img2 // W
+        # sampled_neg_idx_xy = torch.stack((sampled_neg_idx_x,sampled_neg_idx_y),dim=1).type(torch.LongTensor)
+        # e2_sliced_neg = extract_features_int(embedding2, sampled_neg_idx_xy[None, ...])
         # e2_sliced_neg_norm_mean = torch.mean(torch.norm(e2_sliced_neg, p=2, dim=-1))
         # e1_sliced_pos_norm_mean = torch.mean(torch.norm(e1_sliced_, p=2, dim=-1))
         # e2_sliced_pos_norm_mean = torch.mean(torch.norm(e2_sliced_, p=2, dim=-1))
@@ -409,7 +411,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
         # "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
 
-        D_feat_neg = torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx])
+        D_feat_neg = torch.clamp(torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx]), min=1e-16)
         # loss_neg = torch.clamp(self.margin - D_feat_neg, min=0.0)
         loss_neg = torch.clamp(self.margin_neg - D_feat_neg, min=0.0)
         loss_neg = loss_neg**2
@@ -419,7 +421,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
 
         # D_feat_pos = torch.sqrt(((e1_sliced_ - e2_sliced_)**2).sum(-1)) # nan error
-        D_feat_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
+        D_feat_pos = torch.clamp(torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1), min = 1e-16)
         loss_pos = torch.clamp(D_feat_pos - self.margin_pos, min = 0.0)
         loss_pos = loss_pos**2
 

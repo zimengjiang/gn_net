@@ -91,7 +91,8 @@ class GNLoss(nn.Module):
             (ub.reshape(B * N, 2, 1) - miu).type(torch.float32)
         e1 = torch.sum(e1)
         # second error term
-        log_det = torch.log(torch.det(H)).to(device)
+        det_H = torch.clamp(torch.det(H), min=1e-16)
+        log_det = torch.log(det_H).to(device)
         e2 = B * N * torch.log(torch.tensor(2 * np.pi)).to(device) - 0.5 * log_det.sum(-1).to(device)
         # e = e1 + 2 * e2 / 7
         e = self.e1_lamda * e1 + self.e2_lamda * e2
