@@ -51,6 +51,7 @@ parser.add_argument('--schedule_lr_frequency',
                     help='in number of iterations (0 for no schedule)')
 # parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
 parser.add_argument('--schedule_lr_fraction', type=float, default=0.85)
+parser.add_argument('--vgg_checkpoint', type=str, default=None)
 parser.add_argument('--scale',
                     type=int,
                     default=2,
@@ -186,13 +187,15 @@ if args.validate:
 else:
     val_loader = None
 '''set up the network and training parameters'''
-from network.gnnet_model import EmbeddingNet, GNNet
+from network.vgg import ImageRetrievalModel
+from network.gnnet_model import GNNet
 from network.gn_loss import GNLoss
 
 print("****** START ****** \n")
 
 # set up model
-embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
+# embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
+embedding_net = ImageRetrievalModel(args.vgg_checkpoint, device)
 model = GNNet(embedding_net)
 model = model.to(device)
 

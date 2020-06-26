@@ -1,24 +1,22 @@
 CUDA_VISIBLE_DEVICES=2 python run.py \
     --dataset_name 'cmu' \
     --dataset_root '/local-scratch/fuyang/dad/' \
-    --save_root '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/park' \
+    --save_root '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/vgg/park_0.1' \
     --dataset_image_folder 'images' \
     --pair_info_folder 'correspondence/park' \
     --query_folder 'query' \
-    --gn_loss_lamda '0.5' \
+    --gn_loss_lamda '0.1' \
     --contrastive_lamda '1' \
     --margin_pos 0.05 \
     --margin_neg 1 \
-    --scale 4 \
+    --scale 2 \
     --total_epochs 200 \
-    --lr 1e-3 \
     --schedule_lr_frequency 1 \
     --schedule_lr_fraction 0.85 \
+    --lr 1e-3 \
     --weight_decay 0.1 \
     --validation_frequency 1 \
     --notes 'img scale 4 channel 128 on cmu park slices' \
-    --log_dir 'logs/park'
-#    --resume_checkpoint '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/park/0_checkpoint.pth.tar'
-# --num_matches '4000' 
-
-
+    --log_dir 'logs/vgg/park' \
+    --vgg_checkpoint '/local-scratch/fuyang/dad/S2DHM/checkpoints/cmu/weights.pth.tar'
+#    --resume_checkpoint '/local-scratch/fuyang/dad/gn_net/ckpt_cmu/urban/1_checkpoint.pth.tar'
