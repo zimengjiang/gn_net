@@ -184,13 +184,20 @@ else:
 from network.vgg import ImageRetrievalModel
 from network.gnnet_model import GNNet
 from network.gn_loss import GNLoss
+from collections import OrderedDict
 
 print("****** START ****** \n")
 
 # set up model
-embedding_net = ImageRetrievalModel(args.vgg_checkpoint, device)
+embedding_net = ImageRetrievalModel()
 model = GNNet(embedding_net)
 model = model.to(device)
+pre_trained_weights = torch.load(args.vgg_checkpoint, map_location=torch.device(device))['state_dict']
+pre_trained_weights = OrderedDict((k.replace('encoder.module', 'embedding_net._model'), v)
+                for k, v in pre_trained_weights.items())
+del pre_trained_weights['pool.module.centroids']
+del pre_trained_weights['pool.module.conv.weight']
+model.load_state_dict(pre_trained_weights)
 
 # set up loss
 loss_fn = GNLoss(margin_pos=args.margin_pos, 
