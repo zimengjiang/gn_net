@@ -181,7 +181,7 @@ if args.validate:
 else:
     val_loader = None
 '''set up the network and training parameters'''
-from network.vgg import ImageRetrievalModel
+from network.vgg import MyImageRetrievalModel
 from network.gnnet_model import GNNet
 from network.gn_loss import GNLoss
 from collections import OrderedDict
@@ -189,7 +189,7 @@ from collections import OrderedDict
 print("****** START ****** \n")
 
 # set up model
-embedding_net = ImageRetrievalModel()
+embedding_net = MyImageRetrievalModel()
 model = GNNet(embedding_net)
 model = model.to(device)
 pre_trained_weights = torch.load(args.vgg_checkpoint, map_location=torch.device(device))['state_dict']
