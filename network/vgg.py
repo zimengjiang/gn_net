@@ -12,14 +12,13 @@ from torch.nn.parallel import DataParallel
 from torch.nn.functional import interpolate
 from torchvision import models
 
-class ImageRetrievalModel(nn.Module):
+class MyImageRetrievalModel(nn.Module):
     """Build the image retrieval model with intermediate feature extraction.
 
     The model is made of a VGG-16 backbone combined with a NetVLAD pooling
     layer.
     """
-    def __init__(self,
-                checkpoint_path: str, device):
+    def __init__(self):
         """Initialize the Image Retrieval Network.
 
         Args:
@@ -28,56 +27,23 @@ class ImageRetrievalModel(nn.Module):
                 the intermediate features.
             device: The pytorch device to run on.
         """
-        super(ImageRetrievalModel, self).__init__()
-        self._checkpoint_path = checkpoint_path
+        super(MyImageRetrievalModel, self).__init__()
         self._hypercolumn_layers = [14, 17, 21, 24, 28]
-        self._device = device
-
         encoder = models.vgg16(pretrained=False)
         layers = list(encoder.features.children())[:-2]
         encoder = nn.Sequential(*layers)
-
-         # For parallel training
-        gpu_count = torch.cuda.device_count()
-        if gpu_count > 1:
-            encoder = DataParallel(model.encoder)
-
-        # Load weights
-        checkpoint = torch.load(self._checkpoint_path,
-                                map_location=lambda storage,
-                                loc: storage)['state_dict']
-
-        # If model was not trained in parallel, adapt the keys
-        if 'module' not in list(checkpoint.keys())[0]:
-            checkpoint = OrderedDict((k.replace('encoder', 'encoder.module'), v)
-                for k, v in checkpoint.items())
-        elif gpu_count <=1:
-            checkpoint = OrderedDict((k.replace('encoder.module', 'encoder'), v)
-                for k, v in checkpoint.items())
-
-        # model.load_state_dict(checkpoint)
-
-        pretrained_dict = checkpoint
-        model_dict = encoder.state_dict()
-
-        # 1. filter out unnecessary keys
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-        # 2. overwrite entries in the existing state dict
-        model_dict.update(pretrained_dict) 
-        # 3. load the new state dict
-        encoder.load_state_dict(model_dict)
         self._model = encoder
 
     def forward(self, x):
         '''x is the input image tensor'''
         feature_maps,j = [],0
         for i, layer in enumerate(list(self._model.children())):
-                if(j==len(self._hypercolumn_layers)):
-                    break
-                if(i==self._hypercolumn_layers[j]):
-                    feature_maps.append(x)
-                    j+=1
-                x = layer(x) # forwarding
+            if(j==len(self._hypercolumn_layers)):
+                break
+            if(i==self._hypercolumn_layers[j]):
+                feature_maps.append(x)
+                j+=1
+            x = layer(x) # forwarding
         # Delete and empty cache
         del x
         torch.cuda.empty_cache()

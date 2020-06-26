@@ -9,6 +9,7 @@ from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
 import os
+from collections import OrderedDict
 # import wandb
 parser = argparse.ArgumentParser()
 
@@ -187,7 +188,7 @@ if args.validate:
 else:
     val_loader = None
 '''set up the network and training parameters'''
-from network.vgg import ImageRetrievalModel
+from network.vgg import MyImageRetrievalModel
 from network.gnnet_model import GNNet
 from network.gn_loss import GNLoss
 
@@ -195,8 +196,14 @@ print("****** START ****** \n")
 
 # set up model
 # embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
-embedding_net = ImageRetrievalModel(args.vgg_checkpoint, device)
+embedding_net = MyImageRetrievalModel()
 model = GNNet(embedding_net)
+pre_trained_weights = torch.load(args.vgg_checkpoint, map_location=torch.device(device))['state_dict']
+pre_trained_weights = OrderedDict((k.replace('encoder.module', 'embedding_net._model'), v)
+                for k, v in pre_trained_weights.items())
+del pre_trained_weights['pool.module.centroids']
+del pre_trained_weights['pool.module.conv.weight']
+model.load_state_dict(pre_trained_weights)
 model = model.to(device)
 
 # set up loss
