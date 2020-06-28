@@ -267,6 +267,15 @@ def torch_gradient(f):
                        padding=1).view(b, c, h, w)
     return f_gradx, f_grady
 
+def np_gradient_filter(f):
+    # f: BxCxHxW
+    b, c, h, w = f.shape
+    np_gradient_y = torch.FloatTensor([[0., -0.5, 0.], [0., 0., 0.], [0., 0.5, 0.]]).view(1, 1, 3, 3).to(f)
+    np_gradient_x = torch.FloatTensor([[0., 0., 0], [-0.5, 0., 0.5], [0., 0., 0]]).view(1, 1, 3, 3).to(f)
+    f_gradx = F.conv2d(f.view(-1, 1, h, w), np_gradient_x, stride=1, padding=1).view(b, c, h, w)
+    f_grady = F.conv2d(f.view(-1, 1, h, w), np_gradient_y, stride=1, padding=1).view(b, c, h, w)
+    return f_gradx, f_grady
+
 
 def save_checkpoint(model_state,
                     optimizer_state,
