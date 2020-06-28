@@ -4,7 +4,7 @@ import numpy as np
 import torch.nn.functional as F
 # import wandb
 from enum import Enum
-from utils import bilinear_interpolation, batched_eye_like, torch_gradient, MyFunctionNegativeTripletSelector, extract_features, normalize_
+from utils import bilinear_interpolation, batched_eye_like, torch_gradient, MyFunctionNegativeTripletSelector, extract_features, normalize_, np_gradient_filter
 from corres_sampler import random_select_positive_matches
 
 
@@ -70,7 +70,7 @@ class GNLoss(nn.Module):
         # compute Jacobian
 
         # modified
-        f_s_gx, f_s_gy = torch_gradient(fb)  
+        f_s_gx, f_s_gy = np_gradient_filter(fb)  
         J_xs_x = extract_features(f_s_gx, xs)
         J_xs_y = extract_features(f_s_gy, xs)
 
