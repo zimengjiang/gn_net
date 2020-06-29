@@ -381,17 +381,17 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         e2 = e2.transpose(1, 2)  # checked 
 
         # if normalized L2 norm then euclidean distance
-        # e1_sliced = F.normalize(e1_sliced, p=2, dim=-1)
-        # e2 = F.normalize(e2, p = 2, dim=-1)
-        # e2_sliced_ = F.normalize(e2_sliced_, p=2, dim=-1)
-        # e1_sliced_ = F.normalize(e1_sliced_, p=2, dim=-1)
+        e1_sliced = F.normalize(e1_sliced, p=2, dim=-1)
+        e2 = F.normalize(e2, p = 2, dim=-1)
+        e2_sliced_ = F.normalize(e2_sliced_, p=2, dim=-1)
+        e1_sliced_ = F.normalize(e1_sliced_, p=2, dim=-1)
         f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
 
 
         # TODO:
         # f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,
-                                                    #   e2,
-                                                    #   batched=True)
+        #                                               e2,
+        #                                               batched=True)
         idx_1d = torch.arange(H * W)
         idx_x = idx_1d % W
         idx_y = idx_1d // W
