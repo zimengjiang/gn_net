@@ -3,10 +3,12 @@ import numpy as np
 import torch.nn as nn
 import os, copy
 import matplotlib.pyplot as plt
+
 from utils import save_checkpoint, get_lr
 from tqdm import tqdm
-# import wandb
 from tensorboardX import SummaryWriter
+
+
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 
@@ -25,17 +27,7 @@ def fit(train_loader,
         init,
         writer,
         start_epoch=0):
-    """
-    Loaders, model, loss function and metrics should work together for a given task,
-    i.e. The model should be able to process data output of loaders,
-    loss function should process target output of loaders and outputs from the model
-    Examples: Classification: batch loader, classification model, NLL loss, accuracy metric
-    Siamese network: Siamese loader, siamese model, contrastive loss
-    Online triplet learning: batch loader, embedding model, online triplet loss
-    """
-    # for epoch in range(0, start_epoch):
-    # for epoch in range(1, start_epoch):
-    #     scheduler.step()
+
     best_loss = 100000
     if not os.path.exists(save_root):
         os.makedirs(save_root)
@@ -50,8 +42,6 @@ def fit(train_loader,
     train_y_contras = []
     train_y_gn = []
 
-
-    # wandb.watch(model, log="all")
     iteration = 0
     for epoch in range(start_epoch, n_epochs):
         iteration = epoch*len(train_loader)
@@ -85,11 +75,11 @@ def fit(train_loader,
         message = '\nEpoch: {}/{}. Train set: Average loss: {:.4f}\ttriplet: {:.6f}\tgn loss: {:.6f}'.format(
             epoch + 1, n_epochs, train_loss, total_contras_loss, total_gnloss)
         message += ' Lr:{}'.format(get_lr(optimizer))
-        # writer.add_scalar('train_loss', train_loss, epoch + 1)
+        
         # Validate stage
         if val_loader and (epoch % validation_frequency == 0):
             val_loss, val_contras_loss, val_gnloss, val_triplet_level, val_gn_level, val_e1, val_e2 = test_epoch(
-                val_loader, model, loss_fn, cuda, epoch)
+                val_loader, model, loss_fn, cuda, epoch, writer)
             val_loss /= len(val_loader)
             val_contras_loss /= len(val_loader)
             val_gnloss /= len(val_loader)
@@ -110,56 +100,20 @@ def fit(train_loader,
             if val_loss < best_loss:
                 best_loss = val_loss
                 # best_model_wts = copy.deepcopy(model.state_dict())
-                save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), True, save_root, epoch)
-                message += '\nSaving best model ...'
+                with open(os.path.join(save_root, "best.txt"), 'a+') as f:
+                    f.write("{}\n".format(epoch))
 
-        # save the model for every 20 epochs
-        if (epoch % (n_epochs / 10)) == 0:
+                if (epoch+1) >= 20:
+                    save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), True, save_root, epoch)
+                    message += '\nSaving best model ...'
+
+        # save the model for every epochs
+        if ((epoch+1) % 1) == 0:
             message += '\nSaving checkpoint ... \n'
             save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), False, save_root, epoch)
         print(message)
 
-        # wandb.log({
-        #     "epoch": epoch,
-        #     "total_train_loss": train_loss,
-        #     "train_triplet_loss": total_contras_loss,
-        #     "train_gn_loss": total_gnloss,
-        #     "train_contrastive_level4": train_triplet_level[0],
-        #     "train_contrastive_level3": train_triplet_level[1],
-        #     "train_contrastive_level2": train_triplet_level[2],
-        #     "train_contrastive_level1": train_triplet_level[3],
-        #     "train_gn_level4": train_gn_level[0],
-        #     "train_gn_level3": train_gn_level[1],
-        #     "train_gn_level2": train_gn_level[2],
-        #     "train_gn_level1": train_gn_level[3],
-        #     "train_gn_e1": train_e1,
-        #     "train_gn_e2": train_e2,
-        #     "total_loss_pos_mean_level8": total_loss_pos_mean_level[0],
-        #     "total_loss_neg_mean_level8": total_loss_neg_mean_level[0],
-        #     "total_loss_pos_mean_level4": total_loss_pos_mean_level[1],
-        #     "total_loss_neg_mean_level4": total_loss_neg_mean_level[1],
-        #     "total_loss_pos_mean_level2": total_loss_pos_mean_level[2],
-        #     "total_loss_neg_mean_level2": total_loss_neg_mean_level[2],
-        #     "total_loss_pos_mean_level1": total_loss_pos_mean_level[3],
-        #     "total_loss_neg_mean_level1": total_loss_neg_mean_level[3]
-        # })
-        # if(val_loader):
-        #     wandb.log({
-        #     "total_val_loss": val_loss,
-        #     "val_triplet_loss": val_contras_loss,
-        #     "val_gn_loss": val_gnloss,
-        #     "val_triplet_level8": val_triplet_level[0],
-        #     "val_triplet_level4": val_triplet_level[1],
-        #     "val_triplet_level2": val_triplet_level[2],
-        #     "val_triplet_level1": val_triplet_level[3],
-        #     "val_gn_level8": val_gn_level[0],
-        #     "val_gn_level4": val_gn_level[1],
-        #     "val_gn_level2": val_gn_level[2],
-        #     "val_gn_level1": val_gn_level[3],
-        #     "val_gn_e1": val_e1,
-        #     "val_gn_e2": val_e2
-        #     })
-
+        # plot the loss curve
         plt.figure(figsize=(12, 8))
         plt.subplot(2, 1, 1)
         plt.title("train_val_loss_pic")
@@ -185,14 +139,12 @@ def fit(train_loader,
         plt.plot(train_x, train_y_gn, "+-", label='train_gn')
         # plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)
         plt.savefig("./train_val_loss_pic.png")
-        # wandb.Image(plt)
-        # wandb.log({"train_val_loss_pic": plt})
         plt.close()
 
 
 def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
                 log_interval, save_root, epoch, init, iteration, writer):
-    # initialize network parameters, oscillates a lot here. not good
+    # initialize network parameters, oscillates a lot here, not good
     if init and epoch == 0:
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
@@ -223,26 +175,21 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         if cuda:
             img_ab = tuple(d.to(device) for d in img_ab)
             if corres_ab is not None:
-                # corres_ab = corres_ab.cuda()
-                # modified
                 corres_ab = {
                     key: corres_ab[key].to(device)
                     for key in corres_ab
                 }
-                # modified by jzm
-                # for c in corres_ab:
-                #     c = {key: c[key].to(device) for key in c}
 
+        # if (iteration+1) % 2 == 0:
+        #     optimizer.zero_grad()
         optimizer.zero_grad()
+        
         outputs = model(*img_ab)
 
         if type(outputs) not in (tuple, list):
             outputs = (outputs, )
 
         loss_inputs = outputs
-        ''' the following needs modification
-            change loss inputs
-        '''
         if corres_ab is not None:
             corres_ab = (corres_ab, )
             loss_inputs += corres_ab
@@ -261,29 +208,19 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (
             tuple, list) else gnloss_outputs
 
-        # wandb.log({
-        #     "total_loss - iteration": loss, 
-        #     "contrastive_loss - iteration": contras_loss,
-        #     "gn_loss - iteration": gnloss
-        # })
-
         total_loss += loss.item()
         total_contras_loss += contras_loss.item()
         total_gnloss += gnloss.item()
         total_e1 += e1.item()
         total_e2 += e2.item()
 
-        # if (iteration % 1 == 0):
-        #     message1 = '\niteration: {}. Train set: Average loss: {:.4f}\ttriplet: {:.6f}\tgn loss: {:.6f}'.format(
-        #             iteration, total_loss / (batch_idx + 1), total_contras_loss / (batch_idx + 1), total_gnloss / (batch_idx + 1))
-        #     tqdm.write(message1)
-
         loader.set_description("Iteration: {}, Train loss: {:.4f}, triplet: {:.6f}, gn: {:.6f}".format(iteration, total_loss / (batch_idx + 1), total_contras_loss / (batch_idx + 1), total_gnloss / (batch_idx + 1)))
         loader.refresh()
         
-        writer.add_scalar('train_loss_per_iter', total_loss / (batch_idx + 1), iteration)
-        writer.add_scalar('triplet_loss_per_iter', total_contras_loss / (batch_idx + 1), iteration)
-        writer.add_scalar('gn_loss_per_iter', total_gnloss / (batch_idx + 1), iteration)
+        # uncomment if log the train loss per iteration
+        # writer.add_scalar('train_total_loss_per_iter', total_loss / (batch_idx + 1), iteration)
+        # writer.add_scalar('train_triplet_loss_per_iter', total_contras_loss / (batch_idx + 1), iteration)
+        # writer.add_scalar('train_gn_loss_per_iter', total_gnloss / (batch_idx + 1), iteration)
         
         for i in range(4):
             total_tripletloss_level[i] += tripletloss_level[i]
@@ -292,6 +229,8 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
             total_loss_neg_mean_level[i] += loss_neg_mean_level[i]
 
         loss.backward()
+        # if iteration % 2 == 0:
+        #     optimizer.step()
         optimizer.step()
 
         del img_ab
@@ -308,10 +247,15 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     total_e1 /= (batch_idx + 1)
     total_e2 /= (batch_idx + 1)
 
+    # uncomment if log the train loss per epoch
+    writer.add_scalar('train_total_loss', total_loss, epoch)
+    writer.add_scalar('train_triplet_loss', total_contras_loss, epoch)
+    writer.add_scalar('train_gn_loss', total_gnloss, epoch)
+
     return total_loss, total_contras_loss, total_gnloss, total_tripletloss_level, total_gnloss_level, total_e1, total_e2, total_loss_pos_mean_level, total_loss_neg_mean_level
 
 
-def test_epoch(val_loader, model, loss_fn, cuda, epoch):
+def test_epoch(val_loader, model, loss_fn, cuda, epoch, writer):
     with torch.no_grad():
         model.eval()
         val_loss = 0
@@ -337,8 +281,6 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
                         key: corres_ab[key].to(device)
                         for key in corres_ab
                     }
-                    # for c in corres_ab:
-                    #     c = {key: c[key].to(device) for key in c}
 
             outputs = model(*img_ab)
 
@@ -373,10 +315,10 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch):
             for i in range(4):
                 total_tripletloss_level[i] += tripletloss_level[i]
                 total_gnloss_level[i] += gnloss_level[i]
-            # imgA.append(wandb.Image(img_ab[0]))
-            # imgB.append(wandb.Image(img_ab[1]))
-        
-            # for metric in metrics:
-            #     metric(outputs, target, loss_outputs)
+
+    # uncomment if log the validation loss per epoch
+    writer.add_scalar('val_total_loss', val_loss, epoch)
+    writer.add_scalar('val_triplet_loss', val_contras_loss, epoch)
+    writer.add_scalar('val_gn_loss', val_gnloss, epoch)
 
     return val_loss, val_contras_loss, val_gnloss, tripletloss_level, gnloss_level, val_e1, val_e2

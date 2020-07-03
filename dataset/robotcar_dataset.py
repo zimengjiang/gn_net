@@ -11,10 +11,6 @@ from torch.utils.data.sampler import BatchSampler
 from torchvision.transforms import transforms
 
 """
-Train: For each image pair creates randomly positive and negative matches
-    cross-season-correspondence dataset, Robotcar
-    todo: check if all image pairs are in query list  
-
 Initialize Robotcar class attributes.
         Args:
             root: The root to the dataset folder.
@@ -75,19 +71,14 @@ class RobotcarDataset(Dataset):
         
         self._data['pair_file_names'] = pair_files
 
-# 
-
     def load_image_pairs(self):
         N = len(self._data['pair_file_names'])  # number of image pairs
         image_pairs = {'a': [], 'b': []}
         corres_all_pos = {'a': [], 'b': []}
         for f in self._data['pair_file_names']:
-            # pair_info = scipy.io.loadmat(f)
             pair_info = h5py.File(f, 'r+')
             org_name_a = u''.join(chr(c) for c in pair_info['im_i_path'])
             org_name_b = u''.join(chr(c) for c in pair_info['im_j_path'])
-            # query_root = Path(self._data['root'], self._data['name'], self._data['image_folder'],
-            #                   (f.split('/')[-1]).split('_')[1], self._data['queries_folder'])
             query_root = Path(self._data['root'], self._data['name'], self._data['image_folder'])
             image_pairs['a'].append(Path(query_root, org_name_a))
             image_pairs['b'].append(Path(query_root, org_name_b))
@@ -96,22 +87,13 @@ class RobotcarDataset(Dataset):
         self._data['image_pairs_name'] = image_pairs
         self._data['corres_pos_all'] = corres_all_pos
 
-    # To do: double check image W, H !!!!!!
-    '''?
-    mean and std for normalization? 
-    '''
-
     def default_transform(self):
         return transforms.Compose([
             transforms.Resize((1024 // self._data['scale'], 1024 // self._data['scale'])),
-            # check image dim, resize (H, W)?  just for fast debugging
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.03001604,0.08044077,0.13968322], std=[1.0841591,1.0996625,1.1056131]), # all image in robotcar
         ])
-
-    '''
-    '''
 
     def __getitem__(self, idx):
         img_a = self._data['image_pairs_name']['a'][idx]

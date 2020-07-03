@@ -3,10 +3,6 @@ import torch
 import scipy.io
 import random
 
-''' some codes from github：
-    https://github.com/adambielski/siamese-triplet/blob/master/utils.py
-'''
-
 
 def pdist(vectors):
     distance_matrix = -2 * vectors.mm(torch.t(vectors)) + vectors.pow(2).sum(dim=1).view(1, -1) + vectors.pow(2).sum(
@@ -59,22 +55,7 @@ def sample_correspondence(known_correspondence, img1, img2, sample_size=1024):
 def random_select_positive_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     matches_in_1 = matches_in_1[0]
     matches_in_2 = matches_in_2[0]
-    # # check the number of correspondences
-    # if matches_in_1.shape[0] < num_of_pairs:
-    #     random_index = random.choices(range(0, matches_in_1.shape[0]), k=num_of_pairs)
-    # else:
-    #     random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
-
-    # # generate num_of_pairs random numbers in range
-    # # random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
-    # # print(random_index)
-    # loss_neg = dist_nn12[torch.arange(B * N),
-    #                          torch.randint(0, topM, (B * N, ))]
     # # select samples according to the random generated index
-    # matches_in_1_random_selected = [matches_in_1[index] for index in random_index]
-    # matches_in_2_random_selected = [matches_in_2[index] for index in random_index]
-    # matches_in_1_random_selected = np.array(matches_in_1_random_selected)
-    # matches_in_2_random_selected = np.array(matches_in_2_random_selected)
     rand_idx = torch.randint(0,matches_in_1.shape[0],(num_of_pairs,))
     matches_in_1_random_selected = matches_in_1[rand_idx]
     matches_in_2_random_selected = matches_in_2[rand_idx]
@@ -115,10 +96,6 @@ def random_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024
     else:
         random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
 
-    # generate num_of_pairs random numbers in range
-    # random_index = random.sample(range(0, matches_in_1.shape[0]), num_of_pairs)
-    # print(random_index)
-
     # select samples according to the random generated index
     matches_in_1_random_selected = [matches_in_1[index] for index in random_index]
     # matches_in_2_random_selected_pos = [matches_in_2[index] for index in random_index]
@@ -126,17 +103,11 @@ def random_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024
     # generate random neg index which is not equal to pos index
     random_index2 = []
     for index in random_index:
-        # print(index)
         random_index2.append(get_random(0, matches_in_1.shape[0] - 1, index))
-    # print(random_index2)
     matches_in_2_random_selected = [matches_in_2[index2] for index2 in random_index2]
 
     matches_in_1_random_selected = np.array(matches_in_1_random_selected)
     matches_in_2_random_selected = np.array(matches_in_2_random_selected)
-    # matches_in_2_random_selected_pos = np.array(matches_in_2_random_selected_pos)
-
-    # print(matches_in_1_random_selected.shape)
-    # print(matches_in_2_random_selected.shape)
 
     # return matches_in_1_random_selected, matches_in_2_random_selected, matches_in_2_random_selected_pos
     return matches_in_1_random_selected, matches_in_2_random_selected
@@ -155,14 +126,6 @@ def hard_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     # check the number of correspondences
     if matches_in_1.shape[1] < num_of_pairs:
         return None
-
-    # generate num_of_pairs random numbers in range
-    # random_index = random.sample(range(0, matches_in_1.shape[1]), num_of_pairs)
-    # # print(random_index)
-
-    # select samples according to the random generated index
-    # matches_in_1_random_selected = [matches_in_1[index] for index in random_index]
-    # matches_in_2_random_selected_pos = [matches_in_2[index] for index in random_index]
 
     # find the hardest correspondence for each randomly selected points in matches_in-1
     # and store the index into neg_best_index2_list
@@ -185,11 +148,6 @@ def hard_select_negative_matches(matches_in_1, matches_in_2, num_of_pairs=1024):
     matches_in_2_hard_selected = np.array(matches_in_2_hard_selected)
     # matches_in_2_random_selected_pos = np.array(matches_in_2_random_selected_pos)
 
-    # print(matches_in_1_random_selected.shape)
-    # print(matches_in_2_random_selected.shape)
-
-    # return matches_in_1_random_selected, matches_in_2_random_selected, matches_in_2_random_selected_pos
-    # return matches_in_1_random_selected, matches_in_2_random_selected
     return matches_in_2_hard_selected
 
 
@@ -216,6 +174,3 @@ def corres_sampler():
     print(pos_correspondences)
     print(neg_correspondences_random)
     print(neg_correspondences_hard)
-
-# if __name__ == '__main__':
-#     corres_sampler()

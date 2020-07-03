@@ -4,8 +4,6 @@ import shutil, os
 import numpy as np
 import torch
 import torch.nn.functional as F
-# import wandb
-# import torchsnooper
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 
@@ -33,9 +31,6 @@ class MyHardNegativePairSelector(PairSelector):
         self.cpu = cpu
 
     def get_pairs(self, embedding1, embedding2, match_pos, img_scale):
-        # if self.cpu:
-        #     embeddings = embeddings.cpu()
-
         # TODO: adjust the weight
         scale_position = 1e-2
         weight = 10
@@ -136,8 +131,10 @@ def batch_pairwise_squared_distances(x, y):
     y_t = y.permute(0, 2, 1).contiguous()
     y_norm = (y**2).sum(2).view(y.shape[0], 1, y.shape[1])
     dist = x_norm + y_norm - 2.0 * torch.bmm(x, y_t)
-    dist[dist != dist] = 0  # replace nan values with 0
-    return torch.clamp(dist, 0.0, np.inf)
+    # dist[dist != dist] = 0  # replace nan values with 0
+    dist[dist != dist] = 1e-16  # replace nan values with 0
+    # return torch.clamp(dist, 0.0, np.inf)
+    return torch.clamp(dist, 1e-16, np.inf)
 
 
 def normalize_(x):
@@ -146,7 +143,7 @@ def normalize_(x):
     x_norm = x_norm + mask * 1e-16
     return x / x_norm
 
-# @torchsnooper.snoop()
+
 def batch_pairwise_cos_distances(x, y, batched):
     '''                                                                                              
     Modified from https://discuss.pytorch.org/t/efficient-distance-matrix-computation/9065/3         
@@ -165,8 +162,7 @@ def batch_pairwise_cos_distances(x, y, batched):
     else:
         cos_simi = F.cosine_similarity(x, y, dim=-1, eps=1e-16)
         return 1 - cos_simi
-        # return 1 - cos_simi
-        # return 1 - (x * y).sum(-1)  
+
 
 def batched_eye_like(x, n):
     """Create a batch of identity matrices.
@@ -184,8 +180,6 @@ def extract_features(f, indices):
     f: BxCxHxW
     indicies: BxNx2
     '''
-    # B, C, H, W = f.shape
-    # N = indices.shape[1]
     for b in range(f.shape[0]):
         f_bth = bilinear_interpolation(f[b, :, :, :], indices[b, :, :])
         if not b:
@@ -193,6 +187,7 @@ def extract_features(f, indices):
         else:
             f_2d = torch.cat((f_2d, f_bth), dim=1)
     return f_2d.transpose(0, 1).type(torch.float32)
+
 
 def extract_features_int(f, indices):
     '''
@@ -233,29 +228,17 @@ def bilinear_interpolation(grid, idx):
     grid01 = grid[..., y0, x1]
     grid10 = grid[..., y1, x0]
     grid11 = grid[..., y1, x1]
-    # print(weight00)
-    # print(weight01)
-    # print(weight10)
-    # print(weight11)
 
     return weight00 * grid00 + weight01 * grid01 + weight10 * grid10 + weight11 * grid11
 
 
 def torch_gradient(f):
     # f: BxCxHxW
-    # sobel_y = torch.FloatTensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]).view(1,1,3,3).expand(1,f.shape[1],3,3) # .cuda()
-    # sobel_x = torch.FloatTensor([[-1., 0., 1.],[-2., 0., 2.],[-1., 0., 1.]]).view(1,1,3,3).expand(1,f.shape[1],3,3) # .cuda()
-    # f_gradx = F.conv2d(f, sobel_x, stride=1, padding=1)
-    # f_grady = F.conv2d(f, sobel_y, stride=1, padding=1)
-
     b, c, h, w = f.shape
-    # x = torch.randn(batch_size, channels, h, w)
-    # conv = nn.Conv2d(1, 1, 4, 2, 1)
-    # output = conv(x.view(-1, 1, h, w)).view(batch_size, channels, h//2, w//2)
     # sobel operator torch.grad = False checked.
     sobel_y = torch.FloatTensor([[-1., -2., -1.], [0., 0., 0.],
                                  [1., 2., 1.]]).view(1, 1, 3,
-                                                     3).to(device)  # .cuda()
+                                                     3).to(device)
     sobel_x = torch.FloatTensor([[-1., 0., 1.], [-2., 0., 2.], [
         -1., 0., 1.
     ]]).view(1, 1, 3, 3).to(device)  # pytorch performs cross-correlation instead of convolution in information theory
@@ -263,6 +246,21 @@ def torch_gradient(f):
                        padding=1).view(b, c, h, w)
     f_grady = F.conv2d(f.view(-1, 1, h, w), sobel_y, stride=1,
                        padding=1).view(b, c, h, w)
+    return f_gradx, f_grady
+
+
+def np_gradient_filter(f):
+    # f: BxCxHxW
+    b, c, h, w = f.shape
+    np_gradient_y = torch.FloatTensor([[0., -0.5, 0.], [0., 0., 0.], [0., 0.5, 0.]]).view(1, 1, 3, 3).to(f)
+    np_gradient_x = torch.FloatTensor([[0., 0., 0], [-0.5, 0., 0.5], [0., 0., 0]]).view(1, 1, 3, 3).to(f)
+    padded_f = F.pad(f, (1, 1, 1, 1), mode='replicate').view(-1, 1, h+2, w+2)
+    padded_f[:, :, 0, :] += padded_f[:, :, 1, :] -padded_f[:, :, 2, :] 
+    padded_f[:, :, -1, :] -= padded_f[:, :, -3, :] -padded_f[:, :, -2, :] 
+    padded_f[:, :, :, 0] += padded_f[:, :, :, 1] -padded_f[:, :, :, 2] 
+    padded_f[:, :, :, -1] -= padded_f[:, :, :, -3] -padded_f[:, :, :, -2] 
+    f_gradx = F.conv2d(padded_f, np_gradient_x, stride=1, padding=0).view(b, c, h, w)
+    f_grady = F.conv2d(padded_f, np_gradient_y, stride=1, padding=0).view(b, c, h, w)
     return f_gradx, f_grady
 
 
@@ -276,7 +274,6 @@ def save_checkpoint(model_state,
     prefix = str(epoch)
     prefix_save = os.path.join(path, prefix)
     name = prefix_save + '_' + filename
-    # torch.save(state, name)
     torch.save({
             'epoch': epoch,
             'model_state_dict': model_state,
@@ -290,9 +287,6 @@ def save_checkpoint(model_state,
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
-
-
-''' Need Modification!!!'''
 
 
 class TripletSelector:
@@ -347,6 +341,7 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         self.margin_pos = margin_pos
         self.margin_neg = margin_neg
 
+
     def get_triplets(self, embedding1, embedding2, match_pos, scale, topM, dist_threshold, train_or_val, level):
         """
         embedding1: feature map of image 1, BxCxHxW
@@ -365,22 +360,24 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         e1_sliced = e1_sliced_.reshape((B, N, C))  # checked BxNxC
         e2_sliced_ = extract_features(embedding2, a2)
 
-
         e2 = embedding2.reshape((B, C, -1))  # checked
         e2 = e2.transpose(1, 2)  # checked 
 
-        # if normalized L2 norm then euclidean distance
-        # e1_sliced = F.normalize(e1_sliced, p=2, dim=-1)
-        # e2 = F.normalize(e2, p = 2, dim=-1)
-        # e2_sliced_ = F.normalize(e2_sliced_, p=2, dim=-1)
-        # e1_sliced_ = F.normalize(e1_sliced_, p=2, dim=-1)
-        f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
+        distance_flag = 'euclidean_distance' # indicate distance
 
+        if distance_flag == 'euclidean_distance':
+            f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
+        elif distance_flag == 'L2_normalized_euclidean_distance':
+            e1_sliced = F.normalize(e1_sliced, p=2, dim=-1)
+            e2 = F.normalize(e2, p = 2, dim=-1)
+            e2_sliced_ = F.normalize(e2_sliced_, p=2, dim=-1)
+            e1_sliced_ = F.normalize(e1_sliced_, p=2, dim=-1)
+            f_dist_a1_img2 = batch_pairwise_squared_distances(e1_sliced,e2) # dim: B x #a1 x #pixels in img2
+        elif distance_flag == 'cosine_distance':
+            f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced, e2, batched=True)
+        else:
+            raise Exception('Please indicate distance')
 
-        # TODO:
-        # f_dist_a1_img2 = batch_pairwise_cos_distances(e1_sliced,
-                                                    #   e2,
-                                                    #   batched=True)
         idx_1d = torch.arange(H * W)
         idx_x = idx_1d % W
         idx_y = idx_1d // W
@@ -394,53 +391,21 @@ class MyFunctionNegativeTripletSelector(TripletSelector):
         dist_nn12 = dist_nn12.reshape(B * N, -1)
         idx_in_2 = idx_in_2.reshape(B * N, -1)
 
-        # for visualization
+        # for visualization, for checking feature norm
         sampled_neg_idx = torch.randint(0, topM, (B * N, ))
-        sampled_neg_idx_in_img2 = idx_in_2[torch.arange(B * N),sampled_neg_idx]
-        #todo:
-        sampled_neg_idx_x = sampled_neg_idx_in_img2 % W 
-        sampled_neg_idx_y = sampled_neg_idx_in_img2 // W
-        sampled_neg_idx_xy = torch.stack((sampled_neg_idx_x,sampled_neg_idx_y),dim=1).type(torch.LongTensor)
-        e2_sliced_neg = extract_features_int(embedding2, sampled_neg_idx_xy[None, ...])
-        e2_sliced_neg_norm_mean = torch.mean(torch.norm(e2_sliced_neg, p=2, dim=-1))
-        e1_sliced_pos_norm_mean = torch.mean(torch.norm(e1_sliced_, p=2, dim=-1))
-        e2_sliced_pos_norm_mean = torch.mean(torch.norm(e2_sliced_, p=2, dim=-1))
-        # wandb.log({"feature_norm_a1_level{}".format(level): e1_sliced_pos_norm_mean,
-        # "feature_norm_a2_level{}".format(level): e2_sliced_pos_norm_mean,
-        # "feature_norm_n2_level{}".format(level): e2_sliced_neg_norm_mean})
 
-        D_feat_neg = torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx])
-        # loss_neg = torch.clamp(self.margin - D_feat_neg, min=0.0)
+        D_feat_neg = torch.clamp(torch.sqrt(dist_nn12[torch.arange(B * N),sampled_neg_idx]), min=1e-16)
         loss_neg = torch.clamp(self.margin_neg - D_feat_neg, min=0.0)
         loss_neg = loss_neg**2
-        # loss_neg = 0
-        # e1_sliced_ = normalize_(e1_sliced_)
-        # e2_sliced_ = normalize_(e2_sliced_)
-        # loss_pos = ((e1_sliced_ - e2_sliced_)**2).sum(-1)
 
-        # D_feat_pos = torch.sqrt(((e1_sliced_ - e2_sliced_)**2).sum(-1)) # nan error
-        D_feat_pos = torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1)
+        D_feat_pos = torch.clamp(torch.norm(e1_sliced_ - e2_sliced_, p=2, dim=1), min = 1e-16)
         loss_pos = torch.clamp(D_feat_pos - self.margin_pos, min = 0.0)
         loss_pos = loss_pos**2
 
-        # loss_pos = torch.clamp((e1_sliced_ - e2_sliced_)-self.margin_pos, min=0.0)
-        # loss_pos = (loss_pos**2).sum(-1)
+        if distance_flag == 'cosine_distance':
+            loss_pos = batch_pairwise_cos_distances(e1_sliced_, e2_sliced_, batched=False)
 
-        # loss_pos = batch_pairwise_cos_distances(e1_sliced_,
-        #                                         e2_sliced_,
-        #                                         batched=False)
-        '''randomly sample a negative'''
-        # mdist = torch.clamp(loss_pos - loss_neg + self.margin, min=0.0)
         mdist = loss_neg + loss_pos
-        # TODO:
         loss_pos_mean = torch.mean(loss_pos, dim=-1)
-        # TODO:
         loss_neg_mean = torch.mean(loss_neg, dim=-1)
-        # wandb.log({"train_loss_pos_mean": loss_pos_mean, "train_loss_neg_mean": loss_neg_mean})
-        '''mean over all negative pairs'''
-        # loss_pos = loss_pos.reshape(B*N,1)
-        # mdist = torch.clamp(loss_pos - dist_nn12 + self.margin, min=0.0)
-        # mdist = torch.mean(mdist, dim=-1)
-
-        # return torch.mean(mdist)
         return torch.sum(mdist), loss_pos_mean, loss_neg_mean

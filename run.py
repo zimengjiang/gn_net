@@ -1,14 +1,22 @@
+import os
 import torch
-from cmu_dataset import CMUDataset
-from robotcar_dataset import RobotcarDataset
-from trainer import fit
-from torch.utils.data import DataLoader
 import torch.optim as optim
 import argparse
 from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
-# import wandb
+from torch.utils.data import DataLoader
+from collections import OrderedDict
+
+from utils import save_checkpoint, get_lr
+from dataset.cmu_dataset import CMUDataset
+from dataset.robotcar_dataset import RobotcarDataset
+from trainer import fit
+from network.vgg_model import MyImageRetrievalModel
+from network.gnnet_model import GNNet
+from network.unet_model import EmbeddingNet
+from network.gn_loss import GNLoss
+
 parser = argparse.ArgumentParser()
 
 # dataset arguments
@@ -31,6 +39,12 @@ parser.add_argument('--slice', type=int, default=7)
 parser.add_argument('--robotcar_all_weather', type=bool, default=False)
 parser.add_argument('--robotcar_weather', type=str, default='sun')
 
+# model arguments
+parser.add_argument('--finetune_vgg16_s2d', type=bool, default=True)
+parser.add_argument('--finetune_vgg16_imagenet', type=bool, default=False)
+parser.add_argument('--train_vgg16_from_scratch', type=bool, default=False)
+parser.add_argument('--train_unet_from_scratch', type=bool, default=False)
+
 # learning arguments
 parser.add_argument('--batch_size',
                     '-b',
@@ -40,14 +54,16 @@ parser.add_argument('--batch_size',
 parser.add_argument('--num_workers',
                     '-n',
                     type=int,
-                    default=16,
+                    default=0,
                     help="Number of workers")
 parser.add_argument('--lr', type=float, default=1e-6)
 parser.add_argument('--schedule_lr_frequency',
                     type=int,
-                    default=50,
+                    # default=50,
+                    default=1,
                     help='in number of iterations (0 for no schedule)')
-parser.add_argument('--schedule_lr_fraction', type=float, default=0.1)
+parser.add_argument('--schedule_lr_fraction', type=float, default=0.85)
+parser.add_argument('--vgg_checkpoint', type=str, default=None)
 parser.add_argument('--scale',
                     type=int,
                     default=2,
@@ -63,7 +79,7 @@ parser.add_argument('--init',
                     default=False,
                     help="Initialize the network weights")
 parser.add_argument('--resume_checkpoint', type=str, default=None)
-# parser.add_argument('--resume_checkpoint', type=str, default='/local/home/lixxue/gnnet/ckpt_test/2_checkpoint.pth.tar')
+parser.add_argument('--save_initial_weight', type=bool, default=True)
 
 # loss hyperparameters
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
@@ -76,7 +92,7 @@ parser.add_argument('--margin',
                     default=1,
                     help="triplet loss margin")
 parser.add_argument('--e1_lamda', type=float, default=1)
-parser.add_argument('--e2_lamda', type=float, default=2/7)
+parser.add_argument('--e2_lamda', type=float, default=1)
 
 # upsampling
 parser.add_argument('--nearest',
@@ -94,15 +110,9 @@ parser.add_argument('--validate',
                     default=True,
                     help="validate during training or not")
 parser.add_argument('--notes', type=str, default=None)
-
+parser.add_argument('--log_dir', type=str, default='log')
 
 args = parser.parse_args()
-
-# visulaization
-# wandb.init(config=args, project="gn_net_workstation")
-# wandb.config["more"] = "custom"
-
-
 
 # Just for dataset dividing
 pair_file_roots1 = Path(args.dataset_root, args.dataset_name, args.pair_info_folder)
@@ -129,13 +139,15 @@ print('num_valset: {} \n'.format(num_valset))
 
 print('Arguments & hyperparams: ')
 print(args)
+os.makedirs(args.log_dir, exist_ok=True)
+with open(os.path.join(args.log_dir, 'args.txt'), 'w') as f:
+    f.write(str(args))
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 print('device: ' + str(device) + '\n')
 
 '''set up data loaders'''
-# todo: make it configurable
 if args.dataset_name == 'cmu':
     dataset = CMUDataset(root=args.dataset_root,
                          name=args.dataset_name,
@@ -169,8 +181,6 @@ train_loader = DataLoader(trainset,
                           shuffle=True,
                           num_workers=args.num_workers)
 
-# modified 5.18 for debugging
-# jidegaihuilai
 if args.validate:
     val_loader = DataLoader(valset,
                             batch_size=args.batch_size,
@@ -178,15 +188,29 @@ if args.validate:
                             num_workers=args.num_workers)
 else:
     val_loader = None
-'''set up the network and training parameters'''
-from network.gnnet_model import EmbeddingNet, GNNet
-from network.gn_loss import GNLoss
-
-print("****** START ****** \n")
 
 # set up model
-embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
-model = GNNet(embedding_net)
+if args.finetune_vgg16_s2d:
+    embedding_net = MyImageRetrievalModel(pretrained_flag = False)
+    model = GNNet(embedding_net)
+    pre_trained_weights = torch.load(args.vgg_checkpoint, map_location=torch.device(device))['state_dict']
+    pre_trained_weights = OrderedDict((k.replace('encoder.module', 'embedding_net._model'), v)
+                    for k, v in pre_trained_weights.items())
+    del pre_trained_weights['pool.module.centroids']
+    del pre_trained_weights['pool.module.conv.weight']
+    model.load_state_dict(pre_trained_weights)
+elif args.finetune_vgg16_imagenet:
+    embedding_net = MyImageRetrievalModel(pretrained_flag = True)
+    model = GNNet(embedding_net)
+elif args.train_vgg16_from_scratch:
+    embedding_net = MyImageRetrievalModel(pretrained_flag = False)
+    model = GNNet(embedding_net)
+elif args.train_unet_from_scratch:
+    embedding_net = EmbeddingNet(bilinear=args.bilinear, nearest=args.nearest)
+    model = GNNet(embedding_net)
+else:
+    raise Exception('Please indicate model')
+
 model = model.to(device)
 
 # set up loss
@@ -207,13 +231,9 @@ scheduler = optim.lr_scheduler.StepLR(optimizer,
                                       gamma=args.schedule_lr_fraction,
                                       last_epoch=-1)  # optional
 
-# if (args.resume_checkpoint):
-#     model.load_state_dict(
-#         torch.load(args.resume_checkpoint, map_location=torch.device(device)))
-
 if (args.resume_checkpoint):
     checkpoint = torch.load(args.resume_checkpoint, map_location=torch.device(device))
-    start_epoch = checkpoint['epoch']
+    start_epoch = checkpoint['epoch']+1
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
@@ -223,14 +243,20 @@ else:
     print("Did not use any checkpoint")
 
 start_iteration = (start_epoch)*len(train_loader)
-#SummaryWriter encapsulates everything
-writer = SummaryWriter('log', purge_step=start_iteration)
+writer = SummaryWriter(args.log_dir, purge_step=start_iteration) #SummaryWriter encapsulates everything
 
 n_epochs = args.total_epochs
 log_interval = args.log_interval
 save_root = args.save_root
 validation_frequency = args.validation_frequency
 init = args.init
+
+# save initial weight
+if args.save_initial_weight:
+    print('save initial weight')
+    save_checkpoint(model.state_dict(), optimizer.state_dict(), scheduler.state_dict(), False, save_root, -1)
+
 # fit the model
+print("****** START Training****** \n")
 fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs,
     cuda, log_interval, validation_frequency, save_root, init, writer, start_epoch)

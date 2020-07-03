@@ -8,3 +8,6 @@ corres_sampler_old.py
 check.py
 test.py
 wandb/
+log/
+ckpt_cmu/
+logs/
