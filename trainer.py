@@ -168,12 +168,13 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     imgA = []
     imgB = []
     loader = tqdm(train_loader)
-    for batch_idx, (img_ab, corres_ab) in enumerate(loader):
+    for batch_idx, (img_ab, corres_ab, night_flag) in enumerate(loader):
         corres_ab = corres_ab if len(corres_ab) > 0 else None
         if not type(img_ab) in (tuple, list):
             img_ab = (img_ab, )
         if cuda:
             img_ab = tuple(d.to(device) for d in img_ab)
+            # night_flag = tuple(d.to(device) for d in night_flag)
             if corres_ab is not None:
                 corres_ab = {
                     key: corres_ab[key].to(device)
@@ -208,12 +209,32 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (
             tuple, list) else gnloss_outputs
 
-        total_loss += loss.item()
-        total_contras_loss += contras_loss.item()
-        total_gnloss += gnloss.item()
-        total_e1 += e1.item()
-        total_e2 += e2.item()
+        if night_flag:
+            total_loss += 4 * loss.item()
+            total_contras_loss += 4 * contras_loss.item()
+            total_gnloss += 4 * gnloss.item()
+            total_e1 += 4 * e1.item()
+            total_e2 += 4 * e2.item()
+        else:
+            total_loss += loss.item()
+            total_contras_loss += contras_loss.item()
+            total_gnloss += gnloss.item()
+            total_e1 += e1.item()
+            total_e2 += e2.item()
 
+        # if night_flag:
+        #     total_loss += loss.item()
+        #     total_contras_loss += contras_loss.item()
+        #     total_gnloss += gnloss.item()
+        #     total_e1 += e1.item()
+        #     total_e2 += e2.item()
+        # else:
+        #     total_loss += 0.25 * loss.item()
+        #     total_contras_loss += 0.25 * contras_loss.item()
+        #     total_gnloss += 0.25 * gnloss.item()
+        #     total_e1 += 0.25 * e1.item()
+        #     total_e2 += 0.25 * e2.item()
+            
         loader.set_description("Iteration: {}, Train loss: {:.4f}, triplet: {:.6f}, gn: {:.6f}".format(iteration, total_loss / (batch_idx + 1), total_contras_loss / (batch_idx + 1), total_gnloss / (batch_idx + 1)))
         loader.refresh()
         

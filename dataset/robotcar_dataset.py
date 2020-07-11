@@ -5,7 +5,7 @@ from glob import glob
 from corres_sampler import random_select_positive_matches, random_select_negative_matches_whole_image
 import scipy.io
 import h5py  # for loading v7.3 .mat
-
+import string
 from torch.utils.data import Dataset
 from torch.utils.data.sampler import BatchSampler
 from torchvision.transforms import transforms
@@ -45,7 +45,8 @@ class RobotcarDataset(Dataset):
             'image_pairs_name': None,
             'corres_pos_all': None,
             'scale': img_scale,
-            'num_matches': num_matches
+            'num_matches': num_matches,
+            'night_flag': None
         }
         self.load_pair_file_names(robotcar_weather, robotcar_weather_all)
         self.load_image_pairs()
@@ -75,10 +76,19 @@ class RobotcarDataset(Dataset):
         N = len(self._data['pair_file_names'])  # number of image pairs
         image_pairs = {'a': [], 'b': []}
         corres_all_pos = {'a': [], 'b': []}
+        night_flag = []
+        # t='night'
         for f in self._data['pair_file_names']:
             pair_info = h5py.File(f, 'r+')
             org_name_a = u''.join(chr(c) for c in pair_info['im_i_path'])
             org_name_b = u''.join(chr(c) for c in pair_info['im_j_path'])
+            # print(org_name_a)
+            # print(org_name_b)
+            if 'night' in org_name_b:
+                night_flag.append(True)
+                # print(night_flag)
+            else:
+                night_flag.append(False)
             query_root = Path(self._data['root'], self._data['name'], self._data['image_folder'])
             image_pairs['a'].append(Path(query_root, org_name_a))
             image_pairs['b'].append(Path(query_root, org_name_b))
@@ -86,6 +96,8 @@ class RobotcarDataset(Dataset):
             corres_all_pos['b'].append(pair_info['pt_j'][()])  # N x 2
         self._data['image_pairs_name'] = image_pairs
         self._data['corres_pos_all'] = corres_all_pos
+        self._data['night_flag'] = night_flag
+
 
     def default_transform(self):
         return transforms.Compose([
@@ -100,13 +112,14 @@ class RobotcarDataset(Dataset):
         img_b = self._data['image_pairs_name']['b'][idx]
         a = self._data['corres_pos_all']['a'][idx].squeeze()
         b = self._data['corres_pos_all']['b'][idx].squeeze()
+        night_sample_flag = self._data['night_flag'][idx]
         if self.transform:
             img_a = self.default_transform(Image.open(img_a))
             img_b = self.default_transform(Image.open(img_b))
         # pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
         # modified: return all pos matches
         corres_ab_pos = {'a': a, 'b': b}
-        return (img_a, img_b), (corres_ab_pos)
+        return (img_a, img_b), (corres_ab_pos), night_sample_flag
 
     def __len__(self):
         assert len(self._data['image_pairs_name']['a']) == len(self._data['image_pairs_name']['b'])
