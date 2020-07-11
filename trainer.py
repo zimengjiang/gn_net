@@ -29,8 +29,6 @@ def fit(train_loader,
         start_epoch=0):
 
     best_loss = 100000
-    if not os.path.exists(save_root):
-        os.makedirs(save_root)
 
     val_x = []
     val_y = []

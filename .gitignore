@@ -11,3 +11,5 @@ wandb/
 log/
 ckpt_cmu/
 logs/
+cmu_ckpt/
+data/

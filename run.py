@@ -140,6 +140,8 @@ print('num_valset: {} \n'.format(num_valset))
 print('Arguments & hyperparams: ')
 print(args)
 os.makedirs(args.log_dir, exist_ok=True)
+os.makedirs(args.save_root, exist_ok=True)
+
 with open(os.path.join(args.log_dir, 'args.txt'), 'w') as f:
     f.write(str(args))
 
