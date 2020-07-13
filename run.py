@@ -79,7 +79,7 @@ parser.add_argument('--init',
                     default=False,
                     help="Initialize the network weights")
 parser.add_argument('--resume_checkpoint', type=str, default=None)
-parser.add_argument('--save_initial_weight', type=bool, default=True)
+parser.add_argument('--save_initial_weight', type=bool, default=False)
 
 # loss hyperparameters
 parser.add_argument('--gn_loss_lamda', type=float, default=0.003)
@@ -131,7 +131,7 @@ if not len(pair_files1):
 
 # spilt dataset
 num_dataset = len(pair_files1)
-num_valset = round(0.1 * num_dataset)
+num_valset = round(0.01 * num_dataset)
 num_trainset = num_dataset - num_valset
 print('\nnum_dataset: {} '.format(num_dataset))
 print('num_trainset: {} '.format(num_trainset))

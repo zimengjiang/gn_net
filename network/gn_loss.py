@@ -75,7 +75,7 @@ class GNLoss(nn.Module):
         return e, e1, e2
 
 
-    def forward(self, F_a, F_b, positive_matches, iteration, train_or_val):
+    def forward(self, F_a, F_b, positive_matches, iteration, train_or_val, night_flag):
         '''
         F_a is a list containing 4 feature maps of different shapes
         1: B x C X H/(scale*4) x W/(sclae*4)
@@ -124,8 +124,26 @@ class GNLoss(nn.Module):
             e2 = e2 + loss_gn_all[2]
             gnloss_level.append(loss_gn) # acquire gnloss from different levels
 
+            # if night_flag:
+            #     loss = 4 * self.contrastive_lamda*loss_triplet + 4 * (self.gn_lamda * loss_gn) + loss 
+            #     gnloss = 4 * (self.gn_lamda * loss_gn) + gnloss
+            #     tripletloss = 4 * (self.contrastive_lamda * loss_triplet) + tripletloss
+            # else:
+            #     loss = self.contrastive_lamda*loss_triplet + (self.gn_lamda * loss_gn) + loss 
+            #     gnloss = (self.gn_lamda * loss_gn) + gnloss
+            #     tripletloss = (self.contrastive_lamda * loss_triplet) + tripletloss
+
             loss = self.contrastive_lamda*loss_triplet + (self.gn_lamda * loss_gn) + loss 
             gnloss = (self.gn_lamda * loss_gn) + gnloss
             tripletloss = (self.contrastive_lamda * loss_triplet) + tripletloss
+
+        if night_flag:
+            loss = loss 
+            gnloss = gnloss
+            tripletloss = tripletloss
+        else:
+            loss = 0.25 * loss 
+            gnloss = 0.25 * gnloss
+            tripletloss = 0.25 * tripletloss
 
         return loss, tripletloss, gnloss, tripletloss_level, gnloss_level, e1, e2, loss_pos_mean_level, loss_neg_mean_level

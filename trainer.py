@@ -169,6 +169,10 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
     imgB = []
     loader = tqdm(train_loader)
     for batch_idx, (img_ab, corres_ab, night_flag) in enumerate(loader):
+        # if night_flag:
+        #     print('1')
+        # else:
+        #     print('2')
         corres_ab = corres_ab if len(corres_ab) > 0 else None
         if not type(img_ab) in (tuple, list):
             img_ab = (img_ab, )
@@ -201,6 +205,8 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         # modified to print gn loss seperately
         loss_inputs += (True, )
 
+        loss_inputs += (night_flag, )
+
         loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2, loss_pos_mean_level, loss_neg_mean_level = loss_fn(*loss_inputs)
         loss = loss_outputs[0] if type(loss_outputs) in (
             tuple, list) else loss_outputs
@@ -208,19 +214,21 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
             contras_loss_outputs) in (tuple, list) else contras_loss_outputs
         gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (
             tuple, list) else gnloss_outputs
-
-        if night_flag:
-            total_loss += 4 * loss.item()
-            total_contras_loss += 4 * contras_loss.item()
-            total_gnloss += 4 * gnloss.item()
-            total_e1 += 4 * e1.item()
-            total_e2 += 4 * e2.item()
-        else:
-            total_loss += loss.item()
-            total_contras_loss += contras_loss.item()
-            total_gnloss += gnloss.item()
-            total_e1 += e1.item()
-            total_e2 += e2.item()
+        
+        # if night_flag:
+        #     total_loss += 4 * loss.item()
+        #     total_contras_loss += 4 * contras_loss.item()
+        #     total_gnloss += 4 * gnloss.item()
+        #     total_e1 += 4 * e1.item()
+        #     total_e2 += 4 * e2.item()
+        #     print('1')
+        # else:
+        #     total_loss += loss.item()
+        #     total_contras_loss += contras_loss.item()
+        #     total_gnloss += gnloss.item()
+        #     total_e1 += e1.item()
+        #     total_e2 += e2.item()
+        #     print('2')
 
         # if night_flag:
         #     total_loss += loss.item()
@@ -234,7 +242,13 @@ def train_epoch(val_loader, train_loader, model, loss_fn, optimizer, cuda,
         #     total_gnloss += 0.25 * gnloss.item()
         #     total_e1 += 0.25 * e1.item()
         #     total_e2 += 0.25 * e2.item()
-            
+
+        total_loss += loss.item()
+        total_contras_loss += contras_loss.item()
+        total_gnloss += gnloss.item()
+        total_e1 += e1.item()
+        total_e2 += e2.item()
+
         loader.set_description("Iteration: {}, Train loss: {:.4f}, triplet: {:.6f}, gn: {:.6f}".format(iteration, total_loss / (batch_idx + 1), total_contras_loss / (batch_idx + 1), total_gnloss / (batch_idx + 1)))
         loader.refresh()
         
@@ -291,7 +305,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch, writer):
         imgA = []
         imgB = []
 
-        for batch_idx, (img_ab, corres_ab) in enumerate(val_loader):
+        for batch_idx, (img_ab, corres_ab, night_flag) in enumerate(val_loader):
             corres_ab = corres_ab if len(corres_ab) > 0 else None
             if not type(img_ab) in (tuple, list):
                 img_ab = (img_ab, )
@@ -316,7 +330,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch, writer):
             loss_inputs += (epoch, )
             # modified to print gn loss seperately
             loss_inputs += (False, )
-
+            loss_inputs += (night_flag, )
             loss_outputs, contras_loss_outputs, gnloss_outputs, tripletloss_level, gnloss_level, e1, e2, loss_pos_mean_level, loss_neg_mean_level = loss_fn(
                 *loss_inputs)
             loss = loss_outputs[0] if type(loss_outputs) in (
@@ -327,6 +341,32 @@ def test_epoch(val_loader, model, loss_fn, cuda, epoch, writer):
             gnloss = gnloss_outputs[0] if type(gnloss_outputs) in (
                 tuple, list) else gnloss_outputs
 
+            # if night_flag:
+            #     val_loss += 4 * loss.item()
+            #     val_contras_loss += 4 * contras_loss.item()
+            #     val_gnloss += 4 * gnloss.item()
+            #     val_e1 += 4 * e1.item()
+            #     val_e2 += 4 * e2.item()
+            # else:
+            #     val_loss += loss.item()
+            #     val_contras_loss += contras_loss.item()
+            #     val_gnloss += gnloss.item()
+            #     val_e1 += e1.item()
+            #     val_e2 += e2.item()
+            
+            # if night_flag:
+            #     val_loss += loss.item()
+            #     val_contras_loss += contras_loss.item()
+            #     val_gnloss += gnloss.item()
+            #     val_e1 += e1.item()
+            #     val_e2 += e2.item()
+            # else:
+            #     val_loss += 0.25 * loss.item()
+            #     val_contras_loss += 0.25 * contras_loss.item()
+            #     val_gnloss += 0.25 * gnloss.item()
+            #     val_e1 += 0.25 * e1.item()
+            #     val_e2 += 0.25 * e2.item()
+            
             val_loss += loss.item()
             val_contras_loss += contras_loss.item()
             val_gnloss += gnloss.item()
