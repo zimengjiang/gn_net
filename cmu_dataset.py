@@ -66,9 +66,7 @@ class CMUDataset(Dataset):
 
     def load_pair_file_names(self, cmu_slice, cmu_slice_all):
         # load image pairs for one slice
-        # /public_data/cmu/corrrespondence
         pair_file_roots = Path(self._data['root'], self._data['name'], self._data['pair_info_folder'])
-        # /public_data/cmu/corrrespondence/*.mat
         if not cmu_slice_all:
             suffix = 'correspondence_slice{}*.mat'.format(cmu_slice)
         else:
@@ -86,10 +84,7 @@ class CMUDataset(Dataset):
         N = len(self._data['pair_file_names'])  # number of image pairs
         image_pairs = {'a': [], 'b': []}
         corres_all_pos = {'a': [], 'b': []}
-        # /public_data/cmu/images query_root = Path(self._data['root'], self._data['name'], self._data[
-        # 'image_folder'], self._data['slice_folder'], self._data['queries_folder'])
         for f in self._data['pair_file_names']:
-            # pair_info = scipy.io.loadmat(f)
             pair_info = h5py.File(f, 'r+')
             org_name_a = u''.join(chr(c) for c in pair_info['im_i_path'])
             org_name_b = u''.join(chr(c) for c in pair_info['im_j_path'])
@@ -116,9 +111,6 @@ class CMUDataset(Dataset):
                 mean=[0.3806846,0.3870135,0.37218922], std=[0.27193257,0.2855885,0.3013642]),
         ])
 
-    '''
-    '''
-
     def __getitem__(self, idx):
         img_a = self._data['image_pairs_name']['a'][idx]
         img_b = self._data['image_pairs_name']['b'][idx]
@@ -128,20 +120,9 @@ class CMUDataset(Dataset):
             img_a = self.default_transform(Image.open(img_a))
             img_b = self.default_transform(Image.open(img_b))
         
-        # modified: return all pos matches
-        # pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
         corres_ab_pos = {'a': a, 'b': b}
 
-        # modified: if use hard
-        # neg_a, neg_b = random_select_negative_matches_whole_image(a, b, h=self._data['scale']*img_a.shape[1], w=self._data['scale']*img_a.shape[2] ,num_of_pairs=self._data['num_matches'])
-        # corres_ab_pos = {'a': pos_a, 'b': pos_b}
-
-        # modified: if use hard
-        # corres_ab_neg = {'a':neg_a, 'b':neg_b}
-        # modified: if use hard
-        # return (img_a, img_b), (corres_ab_pos,corres_ab_neg)
         return (img_a, img_b), (corres_ab_pos)
-        # return (img_a, img_b), corres_ab_pos
 
     def __len__(self):
         assert len(self._data['image_pairs_name']['a']) == len(self._data['image_pairs_name']['b'])

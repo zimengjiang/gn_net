@@ -8,7 +8,7 @@ import argparse
 from tensorboardX import SummaryWriter
 from pathlib import Path
 from glob import glob
-# import wandb
+
 parser = argparse.ArgumentParser()
 
 # dataset arguments
@@ -100,12 +100,6 @@ parser.add_argument('--notes', type=str, default=None)
 
 args = parser.parse_args()
 
-# visulaization
-# wandb.init(config=args, project="gn_net_workstation")
-# wandb.config["more"] = "custom"
-
-
-
 # Just for dataset dividing
 pair_file_roots1 = Path(args.dataset_root, args.dataset_name, args.pair_info_folder)
 if args.dataset_name == 'cmu' and args.all_slice == False:
@@ -136,8 +130,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
 print('device: ' + str(device) + '\n')
 
-'''set up data loaders'''
-# todo: make it configurable
+# set up data loaders
 if args.dataset_name == 'cmu':
     dataset = CMUDataset(root=args.dataset_root,
                          name=args.dataset_name,
@@ -171,8 +164,6 @@ train_loader = DataLoader(trainset,
                           shuffle=True,
                           num_workers=args.num_workers)
 
-# modified 5.18 for debugging
-# jidegaihuilai
 if args.validate:
     val_loader = DataLoader(valset,
                             batch_size=args.batch_size,
@@ -180,7 +171,7 @@ if args.validate:
                             num_workers=args.num_workers)
 else:
     val_loader = None
-'''set up the network and training parameters'''
+# set up the network and training parameters
 from network.vgg import MyImageRetrievalModel
 from network.gnnet_model import GNNet
 from network.gn_loss import GNLoss
@@ -192,6 +183,7 @@ print("****** START ****** \n")
 embedding_net = MyImageRetrievalModel()
 model = GNNet(embedding_net)
 model = model.to(device)
+# load weights
 pre_trained_weights = torch.load(args.vgg_checkpoint, map_location=torch.device(device))['state_dict']
 pre_trained_weights = OrderedDict((k.replace('encoder.module', 'embedding_net._model'), v)
                 for k, v in pre_trained_weights.items())
@@ -218,10 +210,7 @@ scheduler = optim.lr_scheduler.StepLR(optimizer,
                                       gamma=args.schedule_lr_fraction,
                                       last_epoch=-1)  # optional
 
-# if (args.resume_checkpoint):
-#     model.load_state_dict(
-#         torch.load(args.resume_checkpoint, map_location=torch.device(device)))
-
+# resume checkpoints
 if (args.resume_checkpoint):
     checkpoint = torch.load(args.resume_checkpoint, map_location=torch.device(device))
     start_epoch = checkpoint['epoch']
