@@ -54,9 +54,7 @@ class RobotcarDataset(Dataset):
 
     def load_pair_file_names(self, robotcar_weather, robotcar_weather_all):
         # load image pairs for one slice
-        # /public_data/robotcar/corrrespondence
         pair_file_roots = Path(self._data['root'], self._data['name'], self._data['pair_info_folder'])
-        # /public_data/robotcar/corrrespondence/*.mat
         if not robotcar_weather_all:
             suffix = 'correspondence_run1_overcast-reference_run2_{}*.mat'.format(robotcar_weather)
         else:
@@ -103,8 +101,6 @@ class RobotcarDataset(Dataset):
         if self.transform:
             img_a = self.default_transform(Image.open(img_a))
             img_b = self.default_transform(Image.open(img_b))
-        # pos_a, pos_b = random_select_positive_matches(a, b, num_of_pairs=self._data['num_matches'])
-        # modified: return all pos matches
         corres_ab_pos = {'a': a, 'b': b}
         return (img_a, img_b), (corres_ab_pos)
 
