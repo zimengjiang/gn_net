@@ -8,6 +8,27 @@ To do this, we (1) perform feature-metric PnP given the initial estimation of th
 (2) train the encoder of Sparse-to-Dense Hypercolumn Matching (S2DHM) method on the supervision of pixel correspondences to generate feature maps and 
 (3) integrate feature-metric PnP and learned encoder into the S2DHM framework to construct a visual localization pipeline.
 
+### 1.2 Data
+You need to follow directory structure of the `data` as below.
+```
+${gn_net root}
+├── data
+├── ├── robotcar
+|   `── ├── correspondence/
+|       |   ├── *.mat
+|       ├── images
+│           ├── overcast-reference/
+│           ├── overcast-summer/
+│           ├── overcast-winter/
+│           ├── sun/
+│           ├── dawn/
+│           ├── rain/
+│           ├── snow/
+│           ├── dusk/
+│           ├── night/
+│           └── night-rain/
+```
+
 ### 1.3 Usage:
 
 Run the following commands to install this repository and the required dependencies:
