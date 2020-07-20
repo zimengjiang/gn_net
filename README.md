@@ -35,7 +35,7 @@ python run.py
 ```
 
 ### 1.4 Pipeline:
-<img src="support_file/img/Selection_010.png" width = 100% height = 100% div align=left />
+<img src="support_file/img/pipeline.png" width = 100% height = 100% div align=left />
 
 ### 1.5 Useful links:
 * [S2DHM](https://github.com/germain-hug/S2DHM)
