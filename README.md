@@ -1,4 +1,4 @@
-# 3D Vision: Deep Direct Sparse-to-Dense Localization
+# Deep Direct Sparse-to-Dense Localization
 
 ## 1. Introduction
 ### 1.1 Project description:
