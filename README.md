@@ -8,28 +8,16 @@ To do this, we (1) perform feature-metric PnP given the initial estimation of th
 (2) train the encoder of Sparse-to-Dense Hypercolumn Matching (S2DHM) method on the supervision of pixel correspondences to generate feature maps and 
 (3) integrate feature-metric PnP and learned encoder into the S2DHM framework to construct a visual localization pipeline.
 
-### 1.2 Required dependencies
-```
-pip install gin-config
-pip install torch torchvision
-pip install opencv-python
-pip install tqdm
-pip install -U scikit-learn
-pip install pandas
-pip install matplotlib
-pip install numpy==1.16.1
-pip install wandb
-pip install plotly
-pip install tensorboardX
-pip install h5py
-pip install imageio
-pip install scipy
-pip install Pillow
-pip install functools
-```
-
 ### 1.3 Usage:
-*Please configure the data root and save root before training! You can change the parameters in run.py.*
+
+Run the following commands to install this repository and the required dependencies:
+
+```bash
+git clone https://github.com/zimengjiang/gn_net.git
+cd gn_net/
+pip3 install -r requirements.txt
+```
+This code was run and tested on Python 3.7.3, using Pytorch 1.5.1 although it should be compatible with some previous versions. You can follow instructions to install Pytorch [here](https://pytorch.org/). *Please configure the data root and save root before training! You can change the parameters in run.py.*
 ```
 python run.py
 ```
