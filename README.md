@@ -1,14 +1,16 @@
-# Deep Direct Sparse-to-Dense Localization
+## Leveraging Pixel Correspondences for Sparse-to-Dense Feature-Metric Localization (Training code)
 
-## 1. Introduction
-### 1.1 Project description:
-Visual localization is a key component of many robotics systems. However, in changing conditions such as day-night or summer-winter, it could be very challenging. 
-In this project, we push the state-of-the-art in visual localization by building a pipeline which estimates the 6DOF pose of the camera given a query image and a 3D scene. 
-To do this, we (1) perform feature-metric PnP given the initial estimation of the pose and the dense features of images, 
-(2) train the encoder of Sparse-to-Dense Hypercolumn Matching (S2DHM) method on the supervision of pixel correspondences to generate feature maps and 
-(3) integrate feature-metric PnP and learned encoder into the S2DHM framework to construct a visual localization pipeline.
+### 1 Project description:
+Visual localization is a key component to many robotics systems. 
+However, it is very challenging in changing conditions such as day-night or summer-winter. 
+Based on Sparse-to-Dense Hypercolumn Matching \cite{germain2019sparsetodense}, we improve the localization accuracy by 
+(1) performing Feature-metric PnP given an initial estimation of the pose %together with dense deep features of images and 
+(2) training on the supervision of pixel correspondences using double margin contrastive loss and Gauss-Newton loss to generate better feature maps. 
+Experimental results show that Feature-metric PnP refines pose estimation and we achieve our best accuracy when combine it with features trained on correspondences.
 
-### 1.2 Data root
+<img src="support_file/img/comparison.png" width = 100% height = 100% div align=left />
+
+### 2 Data root
 You need to follow directory structure of the `data` as below.
 ```
 ${gn_net root}
@@ -27,9 +29,17 @@ ${gn_net root}
 │           ├── dusk/
 │           ├── night/
 │           └── night-rain/
+├── ├── cmu
+|   `── ├── correspondence/
+|       |   ├── *.mat
+|       ├── images
+│           ├── slice6/
+│           ├── slice7/
+│           ├── slice8/
+            ...
 ```
 
-### 1.3 Usage:
+### 3 Getting Started:
 
 Run the following commands to install this repository and the required dependencies:
 
@@ -46,9 +56,13 @@ The **vgg_checkpoint** is the original weight provided by S2DHM. You can downloa
 python run.py
 ```
 
-### 1.4 Pipeline:
+### 4 Pipeline:
 <img src="support_file/img/pipeline.png" width = 100% height = 100% div align=left />
 
-### 1.5 Code references:
+### 5 Evaluation:
+You can evaluate the checkpoint files using this [repo](https://github.com/zimengjiang/S2DHM/tree/vgg).
+
+### 6 Code references:
+Part of this repository is based on the official S2DHM and UNET repositories.
 * [S2DHM](https://github.com/germain-hug/S2DHM)
 * [UNET](https://github.com/milesial/Pytorch-UNet)
