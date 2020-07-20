@@ -1,0 +1,16 @@
+gin-config
+torch 
+torchvision
+opencv-python
+tqdm
+scikit-learn
+pandas
+matplotlib
+numpy==1.16.1
+plotly
+tensorboardX
+h5py
+imageio
+scipy
+Pillow
+functools
