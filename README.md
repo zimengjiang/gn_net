@@ -8,7 +8,7 @@ To do this, we (1) perform feature-metric PnP given the initial estimation of th
 (2) train the encoder of Sparse-to-Dense Hypercolumn Matching (S2DHM) method on the supervision of pixel correspondences to generate feature maps and 
 (3) integrate feature-metric PnP and learned encoder into the S2DHM framework to construct a visual localization pipeline.
 
-### 1.2 Data
+### 1.2 Data root
 You need to follow directory structure of the `data` as below.
 ```
 ${gn_net root}
@@ -38,7 +38,10 @@ git clone https://github.com/zimengjiang/gn_net.git
 cd gn_net/
 pip3 install -r requirements.txt
 ```
-This code was run and tested on Python 3.7.3, using Pytorch 1.5.1 although it should be compatible with some previous versions. You can follow instructions to install Pytorch [here](https://pytorch.org/). *Please configure the data root and save root before training! You can change the parameters in run.py.*
+This code was run and tested on Python 3.7.3, using Pytorch 1.5.1 although it should be compatible with some previous versions. You can follow instructions to install Pytorch [here](https://pytorch.org/). *Please configure the data root and save root before training! You can change the parameters in **run.py**.*
+The **vgg_checkpoint** is the original weight provided by S2DHM. You can download the checkpoint files from [here](https://github.com/germain-hug/S2DHM/tree/master/checkpoints). And please remember to set up the path to **vgg_checkpoint** in **run.py**.
+
+
 ```
 python run.py
 ```
