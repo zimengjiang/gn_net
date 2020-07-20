@@ -1,4 +1,5 @@
-## Leveraging Pixel Correspondences for Sparse-to-Dense Feature-Metric Localization (Training code)
+## Leveraging Pixel Correspondences for Sparse-to-Dense Feature-Metric Localization 
+### (Training code)
 
 ### 1 Project description:
 Visual localization is a key component to many robotics systems. 
