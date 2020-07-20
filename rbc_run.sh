@@ -2,8 +2,8 @@
 
 python run.py \
 --dataset_name 'robotcar' \
---dataset_root '/home/lechen/gnnet/robotcar_data' \
---save_root '/home/lechen/gnnet/checkpoint/rbc_ckpt' \
+--dataset_root './data' \
+--save_root './checkpoints' \
 --dataset_image_folder 'images' \
 --pair_info_folder 'correspondence' \
 --query_folder 'query' \

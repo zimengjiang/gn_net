@@ -23,10 +23,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_name', type=str, default='cmu')
 parser.add_argument('--dataset_root',
                     type=str,
-                    default='/local/home/lixxue/gnnet/gn_net_data_tiny')
+                    default='./data')
 parser.add_argument('--save_root',
                     type=str,
-                    default='/local/home/lixxue/gnnet/checkpoint')
+                    default='./checkpoints')
 parser.add_argument('--dataset_image_folder', type=str, default='images')
 parser.add_argument('--pair_info_folder', type=str, default='correspondence')
 parser.add_argument('--query_folder', type=str, default='query')
