@@ -57,10 +57,11 @@ python run.py
 ```
 
 ### 4 Pipeline:
+The whole pipeline consists of this repository and the [S2DHM with Feature-PnP](https://github.com/zimengjiang/S2DHM/tree/vgg).
 <img src="support_file/img/pipeline.png" width = 100% height = 100% div align=left />
 
 ### 5 Evaluation:
-You can evaluate the checkpoint files using this [repo](https://github.com/zimengjiang/S2DHM/tree/vgg).
+You can evaluate the checkpoint files using the [S2DHM with Feature-PnP](https://github.com/zimengjiang/S2DHM/tree/vgg).
 
 ### 6 Code references:
 Part of this repository is based on the official S2DHM and UNET repositories.
