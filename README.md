@@ -11,7 +11,7 @@ Experimental results show that Feature-metric PnP refines pose estimation and we
 <img src="support_file/img/comparison.png" width = 100% height = 100% div align=left />
 
 ### 2 Data root
-You need to follow directory structure of the `data` as below.
+You can download the dataset [here](https://www.visuallocalization.net/datasets/). You need to follow directory structure of the `data` as below.
 ```
 ${gn_net root}
 ├── data
