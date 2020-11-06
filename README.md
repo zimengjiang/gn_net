@@ -4,7 +4,7 @@
 Visual localization is a key component to many robotics systems. 
 However, it is very challenging in changing conditions such as day-night or summer-winter. 
 Based on Sparse-to-Dense Hypercolumn Matching, we improve the localization accuracy by 
-(1) performing Feature-metric PnP given an initial estimation of the pose %together with dense deep features of images and 
+(1) performing Feature-metric PnP given an initial estimation of the pose together with dense deep features of images and 
 (2) training on the supervision of pixel correspondences using double margin contrastive loss and Gauss-Newton loss to generate better feature maps. 
 Experimental results show that Feature-metric PnP refines pose estimation and we achieve our best accuracy when combine it with features trained on correspondences. **This repository is training code of the whole visual localization pipeline. You can find the evaluation part [here](https://github.com/zimengjiang/S2DHM/tree/vgg).**
 
