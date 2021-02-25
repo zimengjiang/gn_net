@@ -2,7 +2,7 @@
 
 This repo contains the code for our 3D Vision project. <br> Developed by
 [Zimeng Jiang](https://github.com/zimengjiang), [Le Chen](https://github.com/clthegoat) and [Lixin Xue](https://github.com/lxxue)
-from [Computer Vision and Geometry Group (CVG)](https://cvg.ethz.ch/) at [ETH Zurich](https://ethz.ch/en.html).
+from [Computer Vision and Geometry Group (CVG)](https://cvg.ethz.ch/) at [ETHz](https://ethz.ch/en.html).
 
 **You can find our final report [here](Document/3DV_Final_Report.pdf)**.
 
