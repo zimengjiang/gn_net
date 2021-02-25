@@ -1,5 +1,11 @@
 ## Leveraging Pixel Correspondences for Sparse-to-Dense Feature-Metric Localization
 
+This repo contains the code for our 3D Vision project. <br> Developed by
+[Zimeng Jiang](https://github.com/zimengjiang), [Le Chen](https://github.com/clthegoat) and [Lixin Xue](https://github.com/lxxue)
+from [Computer Vision and Geometry Group (CVG)](https://cvg.ethz.ch/) at [ETH Zurich](https://ethz.ch/en.html).
+
+**You can find our final report [here](Document/3DV_Final_Report.pdf)**.
+
 ### 1 Description:
 Visual localization is a key component to many robotics systems. 
 However, it is very challenging in changing conditions such as day-night or summer-winter. 
