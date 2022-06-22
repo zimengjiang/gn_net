@@ -6,7 +6,7 @@ tqdm
 scikit-learn
 pandas
 matplotlib
-numpy==1.16.1
+numpy==1.22.0
 plotly
 tensorboardX
 h5py
